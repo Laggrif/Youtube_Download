@@ -1,0 +1,5 @@
+output/*.exe filter=lfs diff=lfs merge=lfs -text
+output/*.zip filter=lfs diff=lfs merge=lfs -text
+output/Downloader/PySide6/*.dll filter=lfs diff=lfs merge=lfs -text
+output/Youtube[[:space:]]Download/PySide6/*.dll filter=lfs diff=lfs merge=lfs -text
+output/ffmpeg/bin/*.exe filter=lfs diff=lfs merge=lfs -text
