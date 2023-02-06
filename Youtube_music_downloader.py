@@ -115,4 +115,4 @@ def download(video_url, folder, signal=None, id=None, format='mp3'):
 if __name__ == "__main__":
     DownloadThread('https://www.youtube.com/watch?v=Jv2uxzhPFl4', './', 0, None).run()
 
-# lignes de YoutubeDL.py: 375,
+# lignes de YoutubeDL.py: 375

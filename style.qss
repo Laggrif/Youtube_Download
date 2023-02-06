@@ -76,4 +76,3 @@ QPushButton#clear_button:pressed {
     background-color: white;
     border: 1px solid grey;
 }
-

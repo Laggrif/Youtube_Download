@@ -1,4 +1,4 @@
-import os.path
+import json
 import re
 
 import time
@@ -11,6 +11,18 @@ from PySide6.QtGui import *
 from PySide6.QtCore import *
 
 from Youtube_music_downloader import DownloadThread
+
+
+with open('config.json', 'r') as fp:
+    config = json.load(fp)
+
+
+def default_path():
+    return config['YTDL']['default path']
+
+
+def set_default_path(path):
+    config['YTDL']['default path'] = path
 
 
 class MainWindow(QMainWindow):
@@ -45,6 +57,10 @@ class MainWindow(QMainWindow):
 
     def home(self):
         self.change_view(self.home_view)
+
+    def closeEvent(self, event):
+        with open('config.json', 'w') as fp:
+            json.dump(config, fp)
 
 
 class Home(QWidget):
@@ -116,7 +132,7 @@ class YTDL(View):
 
         # Input for path and its label
         self.path_input = QLineEdit(self)
-        self.path_input.setText(os.path.dirname(__file__))
+        self.path_input.setText(default_path())
         self.path_input.setGeometry(60, 140, self.WIDTH - 120 - 80, 24)
         self.path_input_label = QLabel('Output path', self)
         self.path_input_label.setObjectName('input_label')
@@ -159,6 +175,7 @@ class YTDL(View):
                                                 QFileDialog.ShowDirsOnly)
         if path != '':
             self.path_input.setText(path)
+            set_default_path(path)
 
     def download(self):
         if self.download_input.text() != '':
