@@ -1,3 +1,6 @@
+import os.path
+from pathlib import Path
+
 import yt_dlp as yt
 from PySide6.QtCore import Signal, QObject
 
@@ -87,10 +90,10 @@ class Logger:
             self.signal.emit([self.id, msg, 'else'])
 
     def warning(self, msg):
-        pass
+        self.signal.emit([self.id, 'warning'])
 
     def error(self, msg):
-        print(msg)
+        self.signal.emit([self.id, 'error'])
 
 
 def download(video_url, folder, signal=None, id=None, format='mp3'):

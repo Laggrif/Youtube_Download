@@ -1,105 +1,18 @@
-import json
-import re
-
 import time
+from datetime import datetime
 
-import sys
+from PySide6.QtCore import QThread, Qt
+from PySide6.QtGui import QCloseEvent, QIcon, QResizeEvent
+from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEngineSettings
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import *
 from yt_dlp.utils import parse_filesize, format_bytes
 
-from PySide6.QtWidgets import *
-from PySide6.QtGui import *
-from PySide6.QtCore import *
-
+import config
+from MainWindow import View
 from Youtube_music_downloader import DownloadThread
-
-
-with open('config.json', 'r') as fp:
-    config = json.load(fp)
-
-
-def default_path():
-    return config['YTDL']['default path']
-
-
-def set_default_path(path):
-    config['YTDL']['default path'] = path
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-
-        geometry = QApplication.primaryScreen().availableGeometry()
-
-        with open("style.qss", "r") as f:
-            _style = f.read()
-            app.setStyleSheet(_style)
-        self.setGeometry(geometry.width() / 2 - 350, geometry.height() / 2 - 200, 700, 400)
-        self.setWindowTitle("Youtube Downloader and more :)")
-
-        self.stack = QStackedWidget(self)
-        self.stack.resize(self.width(), self.height())
-        self.stack.show()
-
-        self.views = {}
-
-        self.home_view = Home(self.stack)
-        self.views[self.home_view.name] = self.stack.count()
-        self.stack.addWidget(self.home_view)
-
-    def add_view(self, view):
-        self.views[view.name] = self.stack.count()
-        self.stack.addWidget(view)
-        self.home_view.add_view(view)
-
-    def change_view(self, view):
-        self.stack.setCurrentIndex(self.views[view.name])
-
-    def home(self):
-        self.change_view(self.home_view)
-
-    def closeEvent(self, event):
-        with open('config.json', 'w') as fp:
-            json.dump(config, fp)
-
-
-class Home(QWidget):
-
-    def __init__(self, parent):
-        super().__init__()
-        self.name = 'home'
-        self.setParent(parent)
-        self.resize(parent.width(), parent.height())
-
-    def add_view(self, view):
-        button = QPushButton(view.name)
-        button.setParent(self)
-
-        def switch_view():
-            self.parent().parent().change_view(view)
-
-        button.clicked.connect(switch_view)
-        button.adjustSize()
-        button.resize(button.width(), 35)
-        button.move(int((self.width() - button.width()) / 2), 30 + (self.parent().count() - 2) * 45)
-        button.show()
-
-
-class View(QWidget):
-    def __init__(self, parent, name):
-        super().__init__()
-        self.setParent(parent)
-        self.name = name
-
-        self.button = QPushButton('Home')
-        self.button.setParent(self)
-        self.button.clicked.connect(self.home)
-        self.button.setGeometry(10, 10, 0, 0)
-        self.button.adjustSize()
-        self.button.show()
-
-    def home(self):
-        self.parent().parent().home()
+from config import *
+from utils import *
 
 
 class YTDL(View):
@@ -110,6 +23,8 @@ class YTDL(View):
         # Dimensions of main window
         self.WIDTH = parent.width()
         self.HEIGHT = parent.height()
+
+        self.browser = YoutubeBrowser(self)
 
         # Input for url and its label
         self.download_input = QLineEdit(self)
@@ -167,6 +82,7 @@ class YTDL(View):
 
     def clear(self):
         self.download_input.setText('')
+        self.browser.show()
 
     def file_explorer(self):
         path = QFileDialog.getExistingDirectory(None,
@@ -177,20 +93,24 @@ class YTDL(View):
             self.path_input.setText(path)
             set_default_path(path)
 
-    def download(self):
-        if self.download_input.text() != '':
-            th = QThread(None)
-            worker = DownloadThread(self.download_input.text(), self.path_input.text(), len(self.downloads))
-            worker.moveToThread(th)
-            th.worker = worker
-            th.started.connect(worker.run)
-            worker.finished.connect(th.quit())
-            worker.sig.connect(self.process_signal)
+    def download(self, url=None):
+        print(url)
+        if url is None and self.download_input.text() != '':
+            url = self.download_input.text()
+        elif url is None:
+            return
+        th = QThread(None)
+        worker = DownloadThread(url, self.path_input.text(), len(self.downloads))
+        worker.moveToThread(th)
+        th.worker = worker
+        th.started.connect(worker.run)
+        worker.finished.connect(th.quit())
+        worker.sig.connect(self.process_signal)
 
-            self.downloads[len(self.downloads)] = [th, self.add_download_widget()]
-            th.start()
+        self.downloads[len(self.downloads)] = [th, self.add_download_widget()]
+        th.start()
 
-            self.download_input.setText('')
+        self.download_input.setText('')
 
     def process_signal(self, signal):
         id = signal[0]
@@ -199,7 +119,7 @@ class YTDL(View):
         if len(signal) == 2 and not isinstance(signal, str):
             return
         elif isinstance(signal, str):
-            if signal.startswith('Delete'):
+            if signal.startswith(('Delete', 'error')):
                 self.downloads[id][0].quit()
                 self.downloads[id][0].wait()
                 widget.deleteLater()
@@ -347,46 +267,87 @@ class ProgressWidget(QFrame):
         self.download_name.adjustSize()
 
 
-def time_to_int(time):
-    if time == '∞':
-        return float('inf')
-    t = time.split(':')
-    sec = 0
-    for i in range(len(t)):
-        sec += int(t[i]) * (60 ** (len(t) - 1 - i))
-    return sec
+class YoutubeBrowser(QWebEngineView):
+    banned_urls = ['https://www.youtube.com/feed/subscriptions',
+                   'https://www.youtube.com/feed/library',
+                   'https://www.youtube.com/feed/history',
+                   'https://www.youtube.com/reporthistory',
+                   'https://www.youtube.com'
+                   ]
+    banned_url_content = [
+        '/signin',
+        'https://www.youtube.com/feed/',
+        'https://www.youtube.com/account',
+        'https://www.youtube.com/channel',
+        'https://www.youtube.com/gaming',
+        'https://www.youtube.com/premium'
+    ]
 
+    def __init__(self, parent: YTDL):
+        super().__init__()
+        self.YTDL = parent
 
-def int_to_time(sec):
-    h = int(sec / 3600)
-    m = int(sec / 60 - h * 60)
-    s = int(sec - m * 60 - h * 3600)
-    if h == 0:
-        time = f'{m:02}:{s:02}'
-    else:
-        time = f'{h:02}:{m:02}:{s:02}'
-    return time
+        main_window = parent.parent().parent()
 
+        self.setGeometry(main_window.x() + int(main_window.width() / 2) - 250, main_window.y(), 500, 700)
 
-def str_to_int(string: str):
-    return float(re.sub(r'[^0-9.]', "", string))
+        # support fullscreen videos
+        self.settings().setAttribute(QWebEngineSettings.FullScreenSupportEnabled, True)
+        self.page().fullScreenRequested.connect(self.fullscreen_on)
 
+        profile = self.page().profile()
+        profile.setCachePath('cache')
+        profile.setPersistentStoragePath('persistent_storage')
+        profile.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
+        profile.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
+        self.setUrl('https://www.youtube.com')
+        self.urlChanged.connect(self.process_url)
 
-def str_minus_num(string: str):
-    return re.sub(r'\d.', '', string)
+        self.button = QPushButton(self)
+        self.button.setGeometry(self.width() - 40, self.height() - 40, 35, 35)
+        self.button.setObjectName('download_icon')
+        self.button.clicked.connect(self.download)
 
+    def fullscreen_on(self, request):
+        if self.isFullScreen():
+            self.showNormal()
+            self.button.show()
+        else:
+            self.showFullScreen()
+            self.button.hide()
+        request.accept()
 
-app = QApplication(sys.argv)
+    def download(self):
+        if self.check_url():
+            self.YTDL.download(url=self.url().toString())
 
-window = MainWindow()
-window.show()
+    def process_url(self):
+        if self.check_url():
+            self.button.show()
+        else:
+            self.button.hide()
+        self.add_to_history()
 
-stack = window.stack
+    def add_to_history(self):
+        history = config.get('history')
+        history[self.url()] = datetime.now().strftime('%d%m%Y. %H:%M:%S')
+        config.put('history', history)
+        config.save_config()
 
-ytdl = YTDL(stack)
-window.add_view(ytdl)
+    def closeEvent(self, event: QCloseEvent):
+        self.hide()
+        event.accept()
 
-Directory = View(stack, 'Directory')
-window.add_view(Directory)
+    def resizeEvent(self, event: QResizeEvent):
+        self.button.move(self.width() - 40, self.height() - 40)
+        event.accept()
 
-sys.exit(app.exec())
+    def check_url(self):
+        url = self.url().toString()
+        for i in self.banned_url_content:
+            if url.__contains__(i):
+                return False
+        for i in self.banned_urls:
+            if url == i or url == i + '/':
+                return False
+        return True
