@@ -1,5 +1,34 @@
 import re
 
+banned_urls = [
+    '',
+    'https://www.youtube.com/feed/subscriptions',
+    'https://www.youtube.com/feed/library',
+    'https://www.youtube.com/feed/history',
+    'https://www.youtube.com/reporthistory',
+    'https://www.youtube.com'
+]
+banned_url_content = [
+    '/signin',
+    'https://www.youtube.com/feed/',
+    'https://www.youtube.com/account',
+    'https://www.youtube.com/channel',
+    'https://www.youtube.com/gaming',
+    'https://www.youtube.com/premium'
+]
+
+
+def check_url(url: str):
+    for i in banned_url_content:
+        if url.__contains__(i):
+            return False
+    for i in banned_urls:
+        if url == i or url == i + '/':
+            return False
+    if url.startswith('https://www.youtube.com'):
+        return url.startswith('https://www.youtube.com/watch')
+    return True
+
 
 def time_to_int(time):
     if time == '∞':

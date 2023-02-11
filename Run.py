@@ -16,7 +16,7 @@ window.show()
 
 stack = window.stack
 
-ytdl = YTDL(stack)
+ytdl = YTDL(stack, window)
 window.add_view(ytdl)
 
 Directory = View(stack, 'Directory')

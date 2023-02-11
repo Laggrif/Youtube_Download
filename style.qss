@@ -36,8 +36,7 @@ QPushButton#clear_button:pressed {
 
 .QPushButton#download_icon {
     background-image: url(./res/icon/download.png);
-    background-position: top left;
-    background-repeat: no-repeat;
+    background-position: center center;
     border-radius: 17px;
 }
 
@@ -47,6 +46,64 @@ QPushButton#clear_button:pressed {
 
 .QPushButton#download_icon:pressed {
     background-image: url(./res/icon/download_clicked.png);
+}
+
+.QPushButton#windows_close_button {
+    margin: 0 0 1px 1px;
+    border: none;
+    background-color: white;
+    border-radius: 0;
+    color: black;
+}
+
+.QPushButton#windows_close_button::hover {
+    background-color: #e81123;
+    color: white;
+}
+
+.QPushButton#windows_maximize_button {
+    margin: 0 0 1px 1px;
+    border: none;
+    background-color: white;
+    border-radius: 0;
+    color: black;
+}
+
+.QPushButton#windows_maximize_button::hover {
+    background-color: #e5e5e5;
+}
+
+.QPushButton#web_navigation_button {
+    padding: 0;
+    border: none;
+    border-radius: 14;
+    background-color: white;
+}
+
+.QPushButton#web_navigation_button::hover {
+    background-color: #dddddd;
+}
+
+.QPushButton#web_navigation_button:pressed {
+    background-color: #d5d5d9;
+}
+
+.QPushButton#search_button {
+    padding: 0;
+    background-color: white;
+    border: 1px solid darkgrey;
+    border-left: none;
+    border-radius: 0;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.QPushButton#search_button::hover {
+    background-color: #dddddd;
+}
+
+.QPushButton#search_button:pressed {
+    background-color: #d5d5d9;
 }
 
 .QLineEdit {
@@ -90,4 +147,19 @@ QPushButton#clear_button:pressed {
     text-align: right;
     background-color: white;
     border: 1px solid grey;
+}
+
+QFrame#custom_title_bar {
+    background-color: white;
+    border-bottom: 1px solid darkgrey;
+}
+
+.QFrame#youtube_browser:active {
+    border: 1px solid #959595;
+    border-radius: 20px;
+}
+
+.QFrame#youtube_browser {
+    border: 1px solid #aaaaaa;
+    border-radius: 20px;
 }

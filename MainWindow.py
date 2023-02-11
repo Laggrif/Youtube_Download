@@ -1,5 +1,6 @@
 import sys
 
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QMainWindow, QApplication, QStackedWidget, QFrame, QPushButton
 
 from config import save_config
@@ -20,20 +21,28 @@ class MainWindow(QMainWindow):
 
         self.views = {}
 
-        self.home_view = Home(self.stack)
-        self.views[self.home_view.name] = self.stack.count()
+        self.home_view = Home(self.stack, self)
+        self.views[self.home_view] = self.stack.count()
         self.stack.addWidget(self.home_view)
 
     def add_view(self, view):
-        self.views[view.name] = self.stack.count()
+        self.views[view] = self.stack.count()
         self.stack.addWidget(view)
         self.home_view.add_view(view)
 
     def change_view(self, view):
-        self.stack.setCurrentIndex(self.views[view.name])
+        view.show()
+        self.stack.setCurrentIndex(self.views[view])
 
     def home(self):
         self.change_view(self.home_view)
+
+    def resizeEvent(self, event: QResizeEvent):
+        event.accept()
+        self.stack.resize(self.width(), self.height())
+        self.home_view.resize(self.width(), self.height())
+        for view in list(self.views.keys()):
+            view.resize(self.width(), self.height())
 
     def closeEvent(self, event):
         save_config()
@@ -43,8 +52,9 @@ class MainWindow(QMainWindow):
 
 class Home(QFrame):
 
-    def __init__(self, parent):
+    def __init__(self, parent, main_window: MainWindow):
         super().__init__()
+        self.main_window = main_window
         self.setObjectName('Home')
         self.name = 'home'
         self.setParent(parent)
@@ -62,6 +72,21 @@ class Home(QFrame):
         button.resize(button.width(), 35)
         button.move(int((self.width() - button.width()) / 2), 30 + (self.parent().count() - 2) * 45)
         button.show()
+
+        self.setMinimumHeight((self.parent().count() - 1) * 45 + 30 + 20)
+        self.setMinimumWidth(max(self.main_window.minimumWidth(), button.width() + 60))
+        self.show()
+
+    def resizeEvent(self, event: QResizeEvent):
+        event.accept()
+        self.resize(self.parent().width(), self.parent().height())
+        for child in self.children():
+            child.move(int((self.width() - child.width()) / 2), child.pos().y())
+
+    def show(self):
+        super().show()
+        self.main_window.setMinimumHeight(self.minimumHeight())
+        self.main_window.setMinimumWidth(self.minimumWidth())
 
 
 class View(QFrame):
