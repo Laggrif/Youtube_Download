@@ -1,4 +1,5 @@
 import os.path
+from os.path import sep
 from pathlib import Path
 
 import yt_dlp as yt
@@ -34,6 +35,7 @@ class Logger:
             self.info(msg)
 
     def info(self, msg: str):
+        print(msg)
         # [youtube] handling
         if msg.startswith('[youtube] Extracting URL'):
             self.signal.emit([self.id, 'Extracting:' + msg.split(':', 1)[1]])
@@ -62,12 +64,12 @@ class Logger:
 
             # video handling
             elif msg.startswith('Destination'):
-                msg = msg.rsplit('.', 1)[0].rsplit('\\', 1)[1]
+                msg = msg.rsplit('.', 1)[0].rsplit(sep, 1)[1]
                 self.signal.emit([self.id, 'Name: ' + msg])
             elif not (msg.startswith('Resuming') or msg.endswith('downloaded')):
                 _of = msg.split('of ')
                 if 'ETA' in msg:
-                    _at = _of[1].split('at ')
+                    _at = _of[1].rstrip('~').split('at ')
                     _in = _at[1].split('ETA ')
                     # format: percent, speed, time, size
                     self.signal.emit([self.id,
@@ -94,7 +96,7 @@ class Logger:
 
         # [ExtractAudio] handling
         elif msg.startswith('[ExtractAudio]'):
-            msg = msg.rsplit('\\', 1)[1]
+            msg = msg.rsplit(sep, 1)[1]
             self.signal.emit([self.id, 'Destination: ' + msg])
 
         # Deleting handling

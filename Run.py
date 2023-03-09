@@ -16,10 +16,10 @@ window.show()
 
 stack = window.stack
 
-ytdl = YTDL(stack, window)
-window.add_view(ytdl)
-
 Directory = View(stack, 'Directory')
 window.add_view(Directory)
+
+ytdl = YTDL(stack, window)
+window.add_view(ytdl)
 
 sys.exit(app.exec())

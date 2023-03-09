@@ -1,4 +1,5 @@
 import sys
+import time
 
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QMainWindow, QApplication, QStackedWidget, QFrame, QPushButton
@@ -29,12 +30,15 @@ class MainWindow(QMainWindow):
         self.views[view] = self.stack.count()
         self.stack.addWidget(view)
         self.home_view.add_view(view)
+        self.home_view.hide()
+        self.change_view(view)
 
     def change_view(self, view):
         view.show()
         self.stack.setCurrentIndex(self.views[view])
 
     def home(self):
+        self.home_view.show()
         self.change_view(self.home_view)
 
     def resizeEvent(self, event: QResizeEvent):
