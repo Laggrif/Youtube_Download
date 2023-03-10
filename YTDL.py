@@ -53,6 +53,7 @@ class YTDL(View):
         # Button to browse file explorer
         self.path_button = QPushButton('Browse', self)
         self.path_button.setObjectName('path_button')
+        self.path_button.resize(70, 24)
         self.path_button.clicked.connect(self.file_explorer)
 
         # Button to download inserted url
@@ -98,14 +99,14 @@ class YTDL(View):
         elif not url:
             return
         th = QThread(None)
-        worker = DownloadThread(url, self.path_input.text(), len(self.downloads))
+        worker = DownloadThread(url, self.path_input.text())
         worker.moveToThread(th)
         th.worker = worker
         th.started.connect(worker.run)
         worker.finished.connect(th.quit())
         worker.sig.connect(self.process_signal)
 
-        self.downloads[len(self.downloads)] = [th, self.add_download_widget()]
+        self.downloads[worker.__hash__()] = [th, self.add_download_widget()]
         th.start()
 
         self.download_input.setText('')

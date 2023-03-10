@@ -1,24 +1,51 @@
+import json
 import os.path
 from pathlib import Path
 
 import yt_dlp as yt
 from PySide6.QtCore import Signal, QObject
-from yt_dlp import FFmpegExtractAudioPP, FFmpegPostProcessor
+from yt_dlp.postprocessor import FFmpegPostProcessor, PostProcessor
 
 
 class DownloadThread(QObject):
     sig = Signal(list)
     finished = Signal()
 
-    def __init__(self, url, path, id):
+    def __init__(self, url, path):
         super().__init__(parent=None)
-        self.id = id
+        self.id = self.__hash__()
         self.url = url
         self.path = path
 
+    def download(self):
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'restrictfilenames': True,
+            'outtmpl': self.path + '/%(title)s.%(ext)s',
+        }
+
+        if self.sig is not None and self.id is not None:
+            ydl_opts['logger'] = Logger(self.sig, self.id)
+
+        with yt.YoutubeDL(ydl_opts) as ydl:
+            ydl.add_post_processor(MetadataPostProcessor(), when='post_process')
+            ydl.download([self.url])
+
     def run(self):
-        download(self.url, self.path, self.sig, self.id)
+        self.download()
         self.finished.emit()
+
+
+class MetadataPostProcessor(PostProcessor):
+    def run(self, info):
+        with open('data', 'w') as fp:
+            json.dump(info, fp, indent=4)
+        return [], info
 
 
 class Logger:
@@ -28,7 +55,7 @@ class Logger:
         self.is_playlist = False
 
     def debug(self, msg):
-        if msg.startswith('[debug] '):
+        if msg.startswith('[debug] ') or msg.startswith('[MetadataPostProcess]'):
             pass
         else:
             self.info(msg)
@@ -118,25 +145,6 @@ class ffmpeg_location:
 
 
 FFmpegPostProcessor._ffmpeg_location = ffmpeg_location()
-
-
-def download(video_url, folder, signal=None, id=None, format='mp3'):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': format,
-            'preferredquality': '192',
-        }],
-        'restrictfilenames': True,
-        'outtmpl': folder + '/%(title)s.%(ext)s',
-    }
-
-    if signal is not None and id is not None:
-        ydl_opts['logger'] = Logger(signal, id)
-
-    with yt.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
 
 
 if __name__ == "__main__":
