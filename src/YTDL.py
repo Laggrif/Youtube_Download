@@ -1,9 +1,8 @@
 import time
 from datetime import datetime
 
-from PySide6.QtCore import QThread, Qt, QEvent
-from PySide6.QtGui import QCloseEvent, QIcon, QResizeEvent, QKeyEvent, QShowEvent, QHideEvent, QFont, QFontDatabase, \
-    QRegion, QPalette
+from PySide6.QtCore import QThread, Qt
+from PySide6.QtGui import QIcon, QResizeEvent, QFont
 from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import *
@@ -205,7 +204,7 @@ class ProgressWidget(QFrame):
         super().__init__(output_widget)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName('ProgressWidget')
-        with open("style.qss", "r") as f:
+        with open("./src/style.qss", "r") as f:
             _style = f.read()
             self.setStyleSheet(_style)
 
@@ -465,7 +464,7 @@ class CustomTitleBar(QFrame):
         self.search_bar.returnPressed.connect(self.search)
 
         self.search_button = QPushButton(self)
-        self.search_button.setIcon(QIcon('./res/icon/search.png'))
+        self.search_button.setIcon(QIcon('../res/icon/search.png'))
         self.search_button.setObjectName('search_button')
         self.search_button.clicked.connect(self.search)
 

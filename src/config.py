@@ -2,7 +2,7 @@ import os.path
 
 from PySide6.QtCore import QSettings
 
-QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, os.path.dirname(__file__) + '/res/config')
+QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, os.path.dirname(os.path.dirname(__file__)) + '/res/config')
 QSettings.setDefaultFormat(QSettings.Format.IniFormat)
 
 settings = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, 'Laggrif', 'Youtube Download')

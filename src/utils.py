@@ -26,7 +26,9 @@ def check_url(url: str):
         if url == i or url == i + '/':
             return False
     if url.startswith('https://www.youtube.com'):
-        return url.startswith('https://www.youtube.com/watch') or url.startswith('https://www.youtube.com/shorts/')
+        return url.startswith('https://www.youtube.com/watch') \
+            or url.startswith('https://www.youtube.com/shorts') \
+            or url.startswith('https://www.youtube.com/playlist')
     return True
 
 

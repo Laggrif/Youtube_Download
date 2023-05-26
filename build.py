@@ -12,17 +12,17 @@ if __name__ == "__main__":
               '--icon "J:/Coding_Projects/Youtube Download/res/icon/download.ico" '
               '--name "Youtube Download" '
               '--clean '
-              '--add-data "J:/Coding_Projects/Youtube Download/config.py;." '
-              '--add-data "J:/Coding_Projects/Youtube Download/Directory.py;." '
-              '--add-data "J:/Coding_Projects/Youtube Download/MainWindow.py;." '
-              '--add-data "J:/Coding_Projects/Youtube Download/style.qss;." '
-              '--add-data "J:/Coding_Projects/Youtube Download/utils.py;." '
-              '--add-data "J:/Coding_Projects/Youtube Download/Youtube_music_downloader.py;." '
-              '--add-data "J:/Coding_Projects/Youtube Download/YTDL.py;." '
-              '--add-data "J:/Coding_Projects/Youtube Download/ffmpeg;ffmpeg/" '
-              '--add-data "J:/Coding_Projects/Youtube Download/res/icon;res/" '
-              '--add-data "J:/Coding_Projects/Youtube Download/vc.exe;."  '
-              '"J:/Coding_Projects/Youtube Download/Run.py"')
+              '--add-data "J:/Coding_Projects/Youtube Download/src/config.py;." '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/Directory.py;." '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/MainWindow.py;." '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/style.qss;." '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/utils.py;." '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/Youtube_music_downloader.py;." '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/YTDL.py;." '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/ffmpeg;ffmpeg/" '
+              '--add-data "J:/Coding_Projects/Youtube Download/res/icon;res/icon" '
+              '--add-data "J:/Coding_Projects/Youtube Download/src/vc.exe;." '
+              '"J:/Coding_Projects/Youtube Download/src/Run.py"')
     if os.path.exists('./dist/Youtube Download/res/config'):
         shutil.rmtree('./dist/Youtube Download/res/config')
-    shutil.copy('./vc.exe', './dist/Youtube Download')
+    shutil.copy('src/vc.exe', './dist/Youtube Download')

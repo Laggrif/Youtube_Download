@@ -7,7 +7,7 @@ from YTDL import YTDL
 
 app = QApplication(sys.argv)
 
-with open("style.qss", "r") as f:
+with open("./src/style.qss", "r") as f:
     _style = f.read()
     app.setStyleSheet(_style)
 

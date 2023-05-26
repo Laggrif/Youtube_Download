@@ -44,7 +44,7 @@ class DownloadThread(QObject):
 
 class MetadataPostProcessor(PostProcessor):
     def run(self, info):
-        with open('data', 'w') as fp:
+        with open('../data', 'w') as fp:
             json.dump(info, fp, indent=4)
         return [], info
 
@@ -94,27 +94,35 @@ class Logger:
                 msg = msg.rsplit('.', 1)[0].rsplit(sep, 1)[1]
                 self.signal.emit([self.id, 'Name: ' + msg])
             elif not (msg.startswith('Resuming') or msg.endswith('downloaded')):
-                _of = msg.split('of ')
+                _of = msg.replace(' ', '').split('of')
                 if 'ETA' in msg:
-                    _at = _of[1].rstrip('~').split('at ')
-                    _in = _at[1].split('ETA ')
+                    _at = _of[1].replace('~', '').split('at')
+                    _in = _at[1].split('ETA')
                     # format: percent, speed, time, size
+                    print(_of[0],
+                                       _in[0],
+                                       _in[1].split('(frag')[0],
+                                       _at[0])
                     self.signal.emit([self.id,
-                                      [_of[0].replace(' ', ''),
-                                       _in[0].replace(' ', ''),
-                                       _in[1].replace(' ', ''),
-                                       _at[0].replace(' ', '')
+                                      [_of[0],
+                                       _in[0],
+                                       _in[1].split('(frag')[0],
+                                       _at[0]
                                        ]
                                       ])
 
                 elif 'in' in msg:
-                    _in = _of[1].split('in ')
-                    _at = _in[1].split('at ')
+                    _in = _of[1].split('in')
+                    _at = _in[1].split('at')
+                    print(_of[0],
+                                       _at[1],
+                                       _at[0],
+                                       _in[0].split('(')[0], '---in')
                     self.signal.emit([self.id,
-                                      [_of[0].replace(' ', ''),
-                                       _at[1].replace(' ', ''),
-                                       _at[0].replace(' ', ''),
-                                       _in[0].replace(' ', '')
+                                      [_of[0],
+                                       _at[1],
+                                       _at[0],
+                                       _in[0].split('(')[0]
                                        ]
                                       ])
 
@@ -150,6 +158,6 @@ FFmpegPostProcessor._ffmpeg_location = ffmpeg_location()
 
 
 if __name__ == "__main__":
-    DownloadThread('https://www.youtube.com/watch?v=Jv2uxzhPFl4', './', 0, None).run()
+    DownloadThread('https://www.youtube.com/watch?v=Jv2uxzhPFl4', '../', 0, None).run()
 
 # lignes de YoutubeDL.py: 375
