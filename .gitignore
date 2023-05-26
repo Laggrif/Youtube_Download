@@ -1,5 +1,5 @@
 /output/
 /ytdl/
-/res/config/
+/src/res/config/
 /Youtube Download.spec
 build.py

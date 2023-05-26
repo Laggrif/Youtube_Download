@@ -5,9 +5,12 @@ from PySide6.QtWidgets import QApplication
 from MainWindow import MainWindow, View
 from YTDL import YTDL
 
+from PySide6 import QtWebEngineWidgets, QtWebEngineCore
+import yt_dlp
+
 app = QApplication(sys.argv)
 
-with open("./src/style.qss", "r") as f:
+with open("./style.qss", "r") as f:
     _style = f.read()
     app.setStyleSheet(_style)
 

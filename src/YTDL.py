@@ -204,7 +204,7 @@ class ProgressWidget(QFrame):
         super().__init__(output_widget)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName('ProgressWidget')
-        with open("./src/style.qss", "r") as f:
+        with open("./style.qss", "r") as f:
             _style = f.read()
             self.setStyleSheet(_style)
 
@@ -464,7 +464,7 @@ class CustomTitleBar(QFrame):
         self.search_bar.returnPressed.connect(self.search)
 
         self.search_button = QPushButton(self)
-        self.search_button.setIcon(QIcon('../res/icon/search.png'))
+        self.search_button.setIcon(QIcon('res/icon/search.png'))
         self.search_button.setObjectName('search_button')
         self.search_button.clicked.connect(self.search)
 
