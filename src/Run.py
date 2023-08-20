@@ -1,16 +1,19 @@
 import sys
 
+from PySide6.QtCore import QDir, QFile
 from PySide6.QtWidgets import QApplication
 
 from MainWindow import MainWindow, View
 from YTDL import YTDL
+from Directory import application_path
 
 from PySide6 import QtWebEngineWidgets, QtWebEngineCore
 import yt_dlp
 
 app = QApplication(sys.argv)
 
-with open("./style.qss", "r") as f:
+QDir.addSearchPath('icon', application_path + "\\res\\icon")
+with open(application_path + "\\res\\style.qss", "r") as f:
     _style = f.read()
     app.setStyleSheet(_style)
 

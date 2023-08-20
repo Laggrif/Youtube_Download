@@ -35,7 +35,7 @@ QPushButton#clear_button:pressed {
 }
 
 .QPushButton#download_icon {
-    background-image: url(./res/icon/download.png);
+    background-image: url(icon:download.png);
     background-position: center center;
     border-radius: 17px;
 }
@@ -45,7 +45,7 @@ QPushButton#clear_button:pressed {
 }
 
 .QPushButton#download_icon:pressed {
-    background-image: url(./res/icon/download_clicked.png);
+    background-image: url(icon:download_clicked.png);
 }
 
 .QPushButton#windows_close_button {

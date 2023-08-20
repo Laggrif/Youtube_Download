@@ -6,6 +6,7 @@ from pathlib import Path
 import yt_dlp as yt
 from PySide6.QtCore import Signal, QObject
 from yt_dlp.postprocessor import FFmpegPostProcessor, PostProcessor
+from Directory import application_path
 
 
 class DownloadThread(QObject):
@@ -44,7 +45,7 @@ class DownloadThread(QObject):
 
 class MetadataPostProcessor(PostProcessor):
     def run(self, info):
-        with open('../data', 'w') as fp:
+        with open(application_path + '\\res\\data', 'w') as fp:
             json.dump(info, fp, indent=4)
         return [], info
 
@@ -151,7 +152,7 @@ class Logger:
 
 class ffmpeg_location:
     def get(self):
-        return os.path.dirname(__file__) + '/ffmpeg/bin'
+        return application_path + '/ffmpeg/bin'
 
 
 FFmpegPostProcessor._ffmpeg_location = ffmpeg_location()
