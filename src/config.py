@@ -1,12 +1,10 @@
-import os.path
-
 from PySide6.QtCore import QSettings
-from Directory import application_path
+from src.Directory import data_path
 
-QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, application_path + '/res/config')
+QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, data_path + '/config')
 QSettings.setDefaultFormat(QSettings.Format.IniFormat)
 
-settings = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, 'Youtube Download', 'Youtube Download')
+settings = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, 'Youtube Downloader')
 
 
 def default_path():

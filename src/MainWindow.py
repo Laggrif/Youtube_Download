@@ -1,10 +1,9 @@
 import sys
-import time
 
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QMainWindow, QApplication, QStackedWidget, QFrame, QPushButton
 
-from config import save_config
+from src.config import save_config
 
 
 class MainWindow(QMainWindow):
@@ -49,9 +48,11 @@ class MainWindow(QMainWindow):
             view.resize(self.width(), self.height())
 
     def closeEvent(self, event):
-        save_config()
-        event.accept()
-        sys.exit(0)
+        for view in list(self.views.keys()):
+            view.closeEvent(event)
+        if event.isAccepted():
+            save_config()
+            sys.exit(0)
 
 
 class Home(QFrame):
@@ -108,3 +109,9 @@ class View(QFrame):
 
     def home(self):
         self.parent().parent().home()
+
+    def closeEvent(self, event):
+        pass
+
+    def close(self):
+        super().close()

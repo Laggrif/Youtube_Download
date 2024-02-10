@@ -135,6 +135,11 @@ QPushButton#clear_button:pressed {
     background-color: lightgrey;
 }
 
+#SideBar {
+    background-color: lightgrey;
+    border: 1px solid black;
+}
+
 .QLabel {
     border: none;
 }
@@ -152,14 +157,25 @@ QPushButton#clear_button:pressed {
 QFrame#custom_title_bar {
     background-color: white;
     border-bottom: 1px solid darkgrey;
+    border-top: 1px solid #aaaaaa;
+    border-left: 1px solid #aaaaaa;
+    border-right: 1px solid #aaaaaa;
+}
+
+QFrame#custom_title_bar:active {
+    border-top: 1px solid #959595;
+    border-left: 1px solid #959595;
+    border-right: 1px solid #959595;
 }
 
 .QFrame#youtube_browser:active {
     border: 1px solid #959595;
-    border-radius: 20px;
 }
 
 .QFrame#youtube_browser {
     border: 1px solid #aaaaaa;
-    border-radius: 20px;
+}
+
+.QFrame#sideBar {
+    background-color: white;
 }

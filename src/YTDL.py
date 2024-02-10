@@ -1,23 +1,37 @@
 import time
 from datetime import datetime
 
-from PySide6.QtCore import QThread, Qt
-from PySide6.QtGui import QIcon, QResizeEvent, QFont
+from PySide6.QtCore import QThread, Qt, QPoint, QPropertyAnimation, QAbstractAnimation, QEasingCurve, \
+    QParallelAnimationGroup
+from PySide6.QtGui import QIcon, QResizeEvent, QFont, QWheelEvent
 from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import *
 from yt_dlp.utils import parse_filesize, format_bytes
 
-import config
-from MainWindow import View, MainWindow
-from Youtube_music_downloader import DownloadThread
-from config import *
-from utils import *
-import multiprocessing
+import src.config as config
+from src.MainWindow import View, MainWindow
+from src.Youtube_music_downloader import DownloadThread
+from src.config import *
+from src.utils import *
+from src.Directory import application_path
+from src.components import ScrollBar
 
 
 def work(foo):
     foo.run()
+
+
+class Leaver:
+    def __init__(self, id, parent):
+        self.id = id
+        self.parent = parent
+
+    def leave(self):
+        self.parent.downloads[self.id][0].quit()
+        self.parent.downloads[self.id][0].wait()
+        self.parent.downloads[self.id][1].deleteLater()
+        del self.parent.downloads[self.id]
 
 
 class YTDL(View):
@@ -80,7 +94,69 @@ class YTDL(View):
         self.output_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.output_scroll.setWidget(self.output_widget)
 
+        # ------------------ Sidebar ------------------
+        self.sidebar_open = False
+        # opaque background for sidebar
+        self.darken = QWidget(self)
+        self.darken.setObjectName('darken')
+        self.darken.setStyleSheet("background-color: #000000;")
+        self.darken.setGeometry(self.WIDTH, 0, self.WIDTH, self.HEIGHT)
+        # sidebar
+        self.sideBar = SideBar(self)
+        self.sideBar.setGeometry(self.WIDTH, 0, self.WIDTH - 100, self.height())
+        # sidebar button
+        self.settings_button = QPushButton('S', self)
+        self.settings_button.setStyleSheet('border-radius: 0; margin: 0; padding: 0;')
+        self.settings_button.setObjectName('settings_button')
+        self.settings_button.setGeometry(self.WIDTH - 20, 0, 20, 20)
+        self.settings_button.clicked.connect(self.toggle_side_bar)
+        self.settings_button.show()
+        # animations
+        effect = QGraphicsOpacityEffect(self.darken)
+        effect.setOpacity(0)
+        animationduration = 200
+        self.darken.setGraphicsEffect(effect)
+        self.darken_anim = QPropertyAnimation(effect, b'opacity')
+        self.darken_anim.setDuration(animationduration)
+        self.darken_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self.darken_anim.finished.connect(lambda: self.darken.move(0 if self.sidebar_open else self.WIDTH, 0))
+        self.sideBar_anim = QPropertyAnimation(self.sideBar, b'pos')
+        self.sideBar_anim.setDuration(animationduration)
+        self.sideBar_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self.settings_button_anim = QPropertyAnimation(self.settings_button, b'pos')
+        self.settings_button_anim.setDuration(animationduration)
+        self.settings_button_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self.anims = QParallelAnimationGroup()
+        self.anims.addAnimation(self.darken_anim)
+        self.anims.addAnimation(self.sideBar_anim)
+        self.anims.addAnimation(self.settings_button_anim)
+
         self.show()
+
+    def toggle_side_bar(self):
+        self.anims.stop()
+        if not self.sidebar_open:
+            self.sidebar_open = True
+            self.darken.move(0, 0)
+            self.settings_button_anim.setEndValue(QPoint(self.WIDTH - 20 - self.sideBar.width(), 0))
+            self.sideBar_anim.setEndValue(QPoint(100, 0))
+            self.darken_anim.setEndValue(0.5)
+            self.anims.start()
+        else:
+            self.sidebar_open = False
+            self.settings_button_anim.setEndValue(QPoint(self.WIDTH - 20, 0))
+            self.sideBar_anim.setEndValue(QPoint(self.WIDTH, 0))
+            self.darken_anim.setEndValue(0)
+            self.anims.start()
+
+    def show_side_bar(self):
+        if self.sidebar_open:
+            self.sideBar.setGeometry(100, 0, self.WIDTH - 100, self.height())
+            self.settings_button.setGeometry(self.WIDTH - 20 - self.sideBar.width(), 0, 20, 20)
+        else:
+            self.sideBar.setGeometry(self.WIDTH, 0, self.WIDTH - 100, self.height())
+            self.settings_button.setGeometry(self.WIDTH - 20, 0, 20, 20)
+        self.darken.setGeometry(0 if self.sidebar_open else self.WIDTH, 0, self.WIDTH, self.HEIGHT)
 
     def clear(self):
         self.download_input.setText('')
@@ -107,10 +183,11 @@ class YTDL(View):
         worker.moveToThread(th)
         th.worker = worker
         th.started.connect(worker.run)
-        worker.finished.connect(th.quit())
+        id = worker.__hash__()
+        self.downloads[id] = [th, self.add_download_widget(), worker]
+        leaver = Leaver(id, self)
+        worker.finished.connect(lambda: leaver.leave())
         worker.sig.connect(self.process_signal)
-
-        self.downloads[worker.__hash__()] = [th, self.add_download_widget()]
         th.start()
 
         self.download_input.setText('')
@@ -123,10 +200,13 @@ class YTDL(View):
             return
         elif isinstance(signal, str):
             if signal.startswith(('Delete', 'error')):
+                pass
+                """
                 self.downloads[id][0].quit()
                 self.downloads[id][0].wait()
                 widget.deleteLater()
                 del self.downloads[id]
+                """
 
             elif signal.startswith('Extracting playlist'):
                 self.downloads[id].append(signal.split(': ')[1])
@@ -156,10 +236,24 @@ class YTDL(View):
                 widget.set_size(size)
                 widget.update_progress(100)
 
+            elif signal.startswith('Downloaded size'):
+                print(signal.split(': ')[1])
+                widget.update_progress(100)
+                widget.set_size(signal.split(': ')[1])
+
+            elif signal.startswith('Downloaded'):
+                widget.update_progress(100)
+                widget.update_name(signal.split(': ')[1])
+                widget.update_status('Already downloaded')
+
         elif isinstance(signal, list):
             if len(signal) == 4:
                 widget.set_size(signal[3])
                 widget.update_progress(float(signal[0].replace('%', '')), signal[1])
+
+            if len(signal) == 3:
+
+                widget.update_progress(1.0, signal[2])
 
         self.output_scroll.update()
 
@@ -174,6 +268,8 @@ class YTDL(View):
 
         for widget in self.output_scroll.children():
             widget.resize(self.WIDTH - 40, widget.height())
+
+        self.show_side_bar()
         # TODO update sizes based on window size
         event.accept()
         self.show()
@@ -200,6 +296,21 @@ class YTDL(View):
         self.web_button.setGeometry(int(self.WIDTH / 2 + space / 2), 200, 100, 30)
 
         self.output_scroll.setGeometry(0, 250, self.WIDTH, self.HEIGHT - 250)
+
+        self.show_side_bar()
+
+    def closeEvent(self, event):
+        if len(self.downloads) != 0:
+            quit_msg = ("Are you sure you want to exit the program? \nAll downloads will be stopped: "
+                        "incomplete downloads will be deleted.")
+            reply = QMessageBox.question(self, 'Confirm Exit', quit_msg, QMessageBox.Yes, QMessageBox.No)
+
+            if reply == QMessageBox.Yes:
+                DownloadThread.close_event(event)
+            else:
+                event.ignore()
+        elif self.isVisible():
+            event.accept()
 
 
 #    left_space   100    space    width/2
@@ -515,8 +626,8 @@ class CustomTitleBar(QFrame):
         self.window().showMinimized()
 
     def show(self) -> None:
-        self.close_button.setGeometry(self.width() - 45, 0, 45, 30)
-        self.maximize_button.setGeometry(self.width() - 90, 0, 45, 30)
+        self.close_button.setGeometry(self.width() - 45, 1, 45, 30)
+        self.maximize_button.setGeometry(self.width() - 90, 1, 45, 30)
         self.search_bar.setGeometry(self.width() / 4, 3, self.width() / 2 - 24, 24)
         self.search_button.setGeometry(self.width() / 4 * 3 - 24, 3, 24, 24)
 
@@ -573,3 +684,73 @@ class SizeGrip(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.mousePos = None
+
+
+class SideBar(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setObjectName('SideBar')
+        _style = None
+        with open(application_path + "\\res\\style.qss", "r") as f:
+            _style = f.read()
+            self.setStyleSheet(_style)
+
+        self.content = QWidget(self)
+        layout = QVBoxLayout(self.content)
+        self.content.setObjectName('SideBarContent')
+        self.content.setLayout(layout)
+
+        self.scrollBar = ScrollBar(self)
+        self.scrollBar.color = (120, 120, 120)
+        self.scrollBar.setObjectName('ScrollBar')
+        self.scrollBar.setGeometry(self.width() - 5, 0, 5, int(self.height()**2 / self.content.height()))
+        self.scrollBar.view = self.content
+
+        self.button = QPushButton("0", self.content)
+        self.button1 = QPushButton("1", self.content)
+        self.button2 = QPushButton("2", self.content)
+        self.button3 = QPushButton("3", self.content)
+
+        self.content.layout().addWidget(self.button)
+        self.content.layout().addWidget(self.button1)
+        self.content.layout().addWidget(self.button2)
+        self.content.layout().addWidget(self.button3)
+
+        for i in range(100):
+            b = QPushButton(str(i), self.content)
+            self.content.layout().addWidget(b)
+
+        # space the elements of the layout
+        layout.setSpacing(10)
+        self.content.adjustSize()
+
+        self.show()
+
+    def wheelEvent(self, event):
+        new_y = self.content.pos().y() + event.angleDelta().y()
+
+        if new_y > 0:
+            self.content.move(0, 0)
+            self.scrollBar.move(self.scrollBar.x(), 0)
+        elif new_y < self.height() - self.content.height():
+            self.content.move(0, self.height() - self.content.height())
+            self.scrollBar.move(self.scrollBar.x(), self.height() - self.scrollBar.height())
+        else:
+            self.content.move(0, new_y)
+            self.scrollBar.move(self.scrollBar.x(), - int(self.height() * self.content.pos().y() / self.content.height()))
+
+        event.accept()
+        self.show()
+
+    def resizeEvent(self, event: QResizeEvent):
+        event.accept()
+        self.scrollBar.setFixedHeight(int(self.height()**2 / self.content.height()))
+        self.scrollBar.move(self.width() - self.scrollBar.width(), self.scrollBar.pos().y())
+        self.setGeometry(self.pos().x(), self.pos().y(), event.size().width(), event.size().height())
+        self.show()
+
+    def show(self):
+        super().show()
+        self.content.show()
+        self.scrollBar.show()
