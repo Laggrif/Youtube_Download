@@ -1,31 +1,34 @@
 import sys
 
-from PySide6.QtCore import QDir, QFile
+from PySide6.QtCore import QDir
 from PySide6.QtWidgets import QApplication
 
-from MainWindow import MainWindow, View
-from YTDL import YTDL
-from Directory import application_path
+from src.MainWindow import MainWindow, View
+from src.YTDL import YTDL
+from src.Directory import application_path
 
-from PySide6 import QtWebEngineWidgets, QtWebEngineCore
-import yt_dlp
 
-app = QApplication(sys.argv)
+def main():
+    app = QApplication(sys.argv)
 
-QDir.addSearchPath('icon', application_path + "\\res\\icon")
-with open(application_path + "\\res\\style.qss", "r") as f:
-    _style = f.read()
-    app.setStyleSheet(_style)
+    QDir.addSearchPath('icon', application_path + "\\res\\icon")
+    with open(application_path + "\\res\\style.qss", "r") as f:
+        _style = f.read()
+        app.setStyleSheet(_style)
 
-window = MainWindow()
-window.show()
+    window = MainWindow()
+    window.show()
 
-stack = window.stack
+    stack = window.stack
 
-Directory = View(stack, 'Directory')
-window.add_view(Directory)
+    Directory = View(stack, 'Directory')
+    window.add_view(Directory)
 
-ytdl = YTDL(stack, window)
-window.add_view(ytdl)
+    ytdl = YTDL(stack, window)
+    window.add_view(ytdl)
 
-sys.exit(app.exec())
+    sys.exit(app.exec())
+
+
+if __name__ == '__main__':
+    main()
