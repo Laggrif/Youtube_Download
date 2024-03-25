@@ -2,9 +2,10 @@ import time
 from datetime import datetime
 
 from PySide6.QtCore import QThread, Qt, QPoint, QPropertyAnimation, QAbstractAnimation, QEasingCurve, \
-    QParallelAnimationGroup
+    QParallelAnimationGroup, QDateTime
 from PySide6.QtGui import QIcon, QResizeEvent, QFont, QWheelEvent
-from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEngineSettings
+from PySide6.QtNetwork import QNetworkCookie
+from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import *
 from yt_dlp.utils import parse_filesize, format_bytes
@@ -439,6 +440,7 @@ class ProgressWidget(QFrame):
 class YoutubeBrowser(QFrame):
     def __init__(self, parent: YTDL):
         super().__init__()
+        self.cookies = []
         self.side_grips = []
         self.corner_grips = []
         self.YTDL = parent
@@ -453,12 +455,15 @@ class YoutubeBrowser(QFrame):
         self.nav_bar = CustomTitleBar(self)
 
         self.browser = QWebEngineView(self)
-        self.browser.settings().setAttribute(QWebEngineSettings.FullScreenSupportEnabled, True)
         self.browser.page().fullScreenRequested.connect(self.fullscreen_on)
 
-        profile = self.browser.page().profile()
-        profile.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
-        profile.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
+        self.profile_browser = QWebEngineProfile.defaultProfile()
+        self.page_browser = QWebEnginePage(self.profile_browser, self.browser)
+        self.browser.setPage(self.page_browser)
+        self.cookie_store = self.profile_browser.cookieStore()
+        self.cookie_store.cookieAdded.connect(lambda cook: self.cookies.append(cook))
+        self.load_session()
+
         self.browser.setUrl('https://www.youtube.com')
         self.browser.urlChanged.connect(self.process_url)
 
@@ -469,6 +474,38 @@ class YoutubeBrowser(QFrame):
 
         self.add_grip()
         self.update_grip()
+
+    def save_session(self):
+        serializable_cookies = {}
+        for cookie in self.cookies:
+            cook = {
+                'name': cookie.name(),
+                'value': cookie.value(),
+                'domain': cookie.domain(),
+                'path': cookie.path(),
+                'secure': cookie.isSecure(),
+                'httpOnly': cookie.isHttpOnly(),
+                'expirationDate': cookie.expirationDate().toSecsSinceEpoch()
+            }
+            serializable_cookies[cookie.name()] = cook
+        config.put('cookies', serializable_cookies)
+
+    def load_session(self):
+        cookies = config.get('cookies')
+        if not cookies:
+            return
+        self.cookie_store.deleteAllCookies()
+        for cookie in cookies.values():
+            cook = QNetworkCookie()
+            cook.setName(cookie['name'])
+            cook.setValue(cookie['value'])
+            cook.setDomain(cookie['domain'])
+            cook.setPath(cookie['path'])
+            cook.setSecure(cookie['secure'])
+            cook.setHttpOnly(cookie['httpOnly'])
+            cook.setExpirationDate(QDateTime.fromSecsSinceEpoch(cookie['expirationDate']))
+
+            self.cookie_store.setCookie(cook)
 
     def fullscreen_on(self, request):
         if self.isFullScreen():
@@ -539,6 +576,9 @@ class YoutubeBrowser(QFrame):
         self.nav_bar.setGeometry(0, 0, self.width(), 32)
         self.button.move(self.width() - 40, self.height() - 40)
         self.browser.setGeometry(0, 32, self.width(), self.height() - 32)
+
+    def closeEvent(self, event):
+        self.save_session()
 
 
 class CustomTitleBar(QFrame):
