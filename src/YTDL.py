@@ -492,6 +492,7 @@ class YoutubeBrowser(QFrame):
         config.put('cookies', serializable_cookies)
 
     def load_session(self):
+        # TODO Might be a huge security risk
         cookies = config.get('cookies')
         if not cookies:
             return
