@@ -31,4 +31,6 @@ if not settings.contains('default path'):
     set_default_path('C:/')
 if not settings.contains('history'):
     put('history', {})
+if not settings.contains('save_cookies'):
+    put('save_cookies', False)
 

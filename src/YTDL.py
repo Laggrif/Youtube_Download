@@ -441,6 +441,7 @@ class ProgressWidget(QFrame):
 class YoutubeBrowser(QFrame):
     def __init__(self, parent: YTDL):
         super().__init__()
+        self.save_cookies = config.get('cookies')
         self.cookies = []
         self.side_grips = []
         self.corner_grips = []
@@ -462,8 +463,9 @@ class YoutubeBrowser(QFrame):
         self.page_browser = QWebEnginePage(self.profile_browser, self.browser)
         self.browser.setPage(self.page_browser)
         self.cookie_store = self.profile_browser.cookieStore()
-        self.cookie_store.cookieAdded.connect(lambda cook: self.cookies.append(cook))
-        self.load_session()
+        if self.save_cookies:
+            self.cookie_store.cookieAdded.connect(lambda cook: self.cookies.append(cook))
+            self.load_session()
 
         self.browser.setUrl('https://www.youtube.com')
         self.browser.urlChanged.connect(self.process_url)
@@ -582,7 +584,8 @@ class YoutubeBrowser(QFrame):
         self.browser.setGeometry(0, 32, self.width(), self.height() - 32)
 
     def closeEvent(self, event):
-        self.save_session()
+        if self.save_cookies:
+            self.save_session()
 
 
 class CustomTitleBar(QFrame):
