@@ -1,5 +1,6 @@
 import time
 from datetime import datetime
+from os.path import join
 
 from PySide6.QtCore import QThread, Qt, QPoint, QPropertyAnimation, QAbstractAnimation, QEasingCurve, \
     QParallelAnimationGroup, QDateTime
@@ -321,7 +322,7 @@ class ProgressWidget(QFrame):
         super().__init__(output_widget)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName('ProgressWidget')
-        with open(application_path + "\\res\\style.qss", "r") as f:
+        with open(join(application_path, "res", "style.qss"), "r") as f:
             _style = f.read()
             self.setStyleSheet(_style)
 
@@ -620,7 +621,7 @@ class CustomTitleBar(QFrame):
         self.search_bar.returnPressed.connect(self.search)
 
         self.search_button = QPushButton(self)
-        self.search_button.setIcon(QIcon(application_path + '\\res\\icon\\search.png'))
+        self.search_button.setIcon(QIcon(join(application_path, 'res', 'icon', 'search.png')))
         self.search_button.setObjectName('search_button')
         self.search_button.clicked.connect(self.search)
 
@@ -732,7 +733,7 @@ class SideBar(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName('SideBar')
         _style = None
-        with open(application_path + "\\res\\style.qss", "r") as f:
+        with open(join(application_path, "res", "style.qss"), "r") as f:
             _style = f.read()
             self.setStyleSheet(_style)
 

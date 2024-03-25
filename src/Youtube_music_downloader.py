@@ -4,7 +4,7 @@ import os.path
 import subprocess
 import time
 from multiprocessing import Process
-from os.path import sep
+from os.path import sep, join
 
 import yt_dlp as yt
 from mutagen.easyid3 import EasyID3
@@ -31,7 +31,7 @@ class DownloadThread(QObject):
         self.id = self.__hash__()
         self.url = url
         self.path = path
-        self.filter = Filter(self, None)
+        self.filter = Filter(self, {})
 
     def download(self):
 
@@ -73,17 +73,18 @@ class Filter:
     def __init__(self, parent, args):
         self.parent = parent
         self.args = args
-        # TODO set up filter from args
         self.filters = {
             "metadata": MetadataPostProcessor(),
             "ffmpeg": FFMpegThreadToMP3(),
             "finished": Finished(signal=self.parent.finished, id=self.parent.id)
         }
-        self.filters["metadata"].on = False
-        self.filters["ffmpeg"].on = False
 
-    def filter(self, info):
-        print("Filter")
+        for a in args.keys():
+            if a in self.filters:
+                self.filters[a].on = args[a]
+
+    def filter(self, data):
+        pass
 
     def stop(self):
         for f in self.filters.values():
@@ -121,7 +122,8 @@ class FFMpegThreadToMP3(PostProcessor):
             self.out = input_file.rsplit('.', 1)[0] + f'.{format}'
             self.to_screen(f'[ffmpeg format]: {format}', prefix=False)
             self.proc = subprocess.Popen(
-                f'"{application_path}\\ffmpeg\\bin\\ffmpeg.exe" -y -i "{input_file}" -vn -acodec libmp3lame "{self.out}"',
+                f'"{join(application_path, "ffmpeg", "bin", "ffmpeg.exe")}" -y -i "{input_file}" -vn -acodec '
+                f'libmp3lame "{self.out}"',
                 stderr=subprocess.PIPE,
                 stdin=subprocess.PIPE,
                 universal_newlines=True)
