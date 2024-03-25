@@ -497,6 +497,8 @@ class YoutubeBrowser(QFrame):
             return
         self.cookie_store.deleteAllCookies()
         for cookie in cookies.values():
+            if QDateTime.currentSecsSinceEpoch() > cookie['expirationDate'] >= 0:
+                continue
             cook = QNetworkCookie()
             cook.setName(cookie['name'])
             cook.setValue(cookie['value'])
