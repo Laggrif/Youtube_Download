@@ -34,3 +34,6 @@ if not settings.contains('history'):
 if not settings.contains('save_cookies'):
     put('save_cookies', False)
 
+# TODO for testing only, replace with real values
+if not settings.contains('sideBar/checkbox1'):
+    put('sideBar/checkbox1', False)

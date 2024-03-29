@@ -58,14 +58,13 @@ class DownloadThread(QObject):
         self.download()
 
     def stop(self):
+        # stops download but cleans up only if in filtering process
         self.filter.stop()
         if self.filter["ffmpeg"] and self.filter["ffmpeg"].proc:
-            print("\nstopping ffmpeg process\n")
             self.filter["ffmpeg"].proc.communicate(input='q')
             self.filter["ffmpeg"].proc.wait()
             if not self.filter["ffmpeg"].done and self.filter["ffmpeg"].out and os.path.exists(self.filter["ffmpeg"].out):
                 os.remove(self.filter["ffmpeg"].out)
-        self.finished.emit()
         del self.downloads[self.id]
 
 

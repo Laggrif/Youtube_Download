@@ -758,21 +758,28 @@ class SideBar(QWidget):
         self.button1 = QPushButton("1", self.content)
         self.button2 = QPushButton("2", self.content)
         self.button3 = QPushButton("3", self.content)
+        self.checkbox1 = QRadioButton("Checkbox 1", self.content)
+        self.checkbox1.toggled.connect(lambda: self.save_config())
 
         self.content.layout().addWidget(self.button)
         self.content.layout().addWidget(self.button1)
         self.content.layout().addWidget(self.button2)
         self.content.layout().addWidget(self.button3)
-
-        for i in range(100):
-            b = QPushButton(str(i), self.content)
-            self.content.layout().addWidget(b)
+        self.content.layout().addWidget(self.checkbox1)
 
         # space the elements of the layout
         layout.setSpacing(10)
         self.content.adjustSize()
 
+        self.load_config()
+
         self.show()
+
+    def load_config(self):
+        self.checkbox1.setChecked(config.get("sideBar/checkbox1") == "true")
+
+    def save_config(self):
+        config.put("sideBar/checkbox1", self.checkbox1.isChecked())
 
     def wheelEvent(self, event):
         new_y = self.content.pos().y() + event.angleDelta().y()
