@@ -106,6 +106,13 @@ QPushButton#clear_button:pressed {
     background-color: #d5d5d9;
 }
 
+.QPushButton#ModifiableListWidgetButton {
+    border-radius: 0;
+    margin: 0;
+    padding: 2px 15px 2px 15px;
+    border-left: 0;
+}
+
 .QLineEdit {
     font-size: 14px;
     border: 1px solid darkgrey;
@@ -178,4 +185,15 @@ QFrame#custom_title_bar:active {
 
 .QFrame#sideBar {
     background-color: white;
+}
+
+QListWidget {
+    border: 1px solid #aaaaaa;
+    border-radius: 5px;
+    background-color: #f3f3f3;
+    padding: 2px 10px;
+}
+
+QListWidget#ModifiableListWidgetList {
+    border-bottom-right-radius: 0;
 }

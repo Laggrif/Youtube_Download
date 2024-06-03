@@ -1,10 +1,11 @@
+import os.path
 import time
 from datetime import datetime
 from os.path import join
 
-from PySide6.QtCore import QThread, Qt, QPoint, QPropertyAnimation, QAbstractAnimation, QEasingCurve, \
-    QParallelAnimationGroup, QDateTime
-from PySide6.QtGui import QIcon, QResizeEvent, QFont, QWheelEvent
+from PySide6.QtCore import QThread, Qt, QPoint, QPropertyAnimation, QEasingCurve, \
+    QParallelAnimationGroup, QDateTime, QSize
+from PySide6.QtGui import QIcon, QResizeEvent, QFont
 from PySide6.QtNetwork import QNetworkCookie
 from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -14,10 +15,11 @@ from yt_dlp.utils import parse_filesize, format_bytes
 import src.config as config
 from src.MainWindow import View, MainWindow
 from src.Youtube_music_downloader import DownloadThread
+from src.components.modifiablelistwidget import ModifiableList, FilterPopup
 from src.config import *
 from src.utils import *
 from src.Directory import application_path
-from src.components import ScrollBar
+from src.components.scrollbar import ScrollBar
 
 
 def work(foo):
@@ -107,7 +109,9 @@ class YTDL(View):
         self.sideBar = SideBar(self)
         self.sideBar.setGeometry(self.WIDTH, 0, self.WIDTH - 100, self.height())
         # sidebar button
-        self.settings_button = QPushButton('S', self)
+        self.settings_button = QPushButton("", self)
+        self.settings_button.setIcon(QIcon(os.path.join(application_path, 'res', 'icon', 'settings.png')))
+        self.settings_button.setIconSize(QSize(17, 17))
         self.settings_button.setStyleSheet('border-radius: 0; margin: 0; padding: 0;')
         self.settings_button.setObjectName('settings_button')
         self.settings_button.setGeometry(self.WIDTH - 20, 0, 20, 20)
@@ -754,18 +758,11 @@ class SideBar(QWidget):
         self.scrollBar.setGeometry(self.width() - 5, 0, 5, int(self.height()**2 / self.content.height()))
         self.scrollBar.view = self.content
 
-        self.button = QPushButton("0", self.content)
-        self.button1 = QPushButton("1", self.content)
-        self.button2 = QPushButton("2", self.content)
-        self.button3 = QPushButton("3", self.content)
-        self.checkbox1 = QRadioButton("Checkbox 1", self.content)
-        self.checkbox1.toggled.connect(lambda: self.save_config())
+        # filters
+        self.filters = ModifiableList(self, popup="FilterPopup")
 
-        self.content.layout().addWidget(self.button)
-        self.content.layout().addWidget(self.button1)
-        self.content.layout().addWidget(self.button2)
-        self.content.layout().addWidget(self.button3)
-        self.content.layout().addWidget(self.checkbox1)
+        # add each element to the layout
+        self.content.layout().addWidget(self.filters)
 
         # space the elements of the layout
         layout.setSpacing(10)
@@ -776,10 +773,12 @@ class SideBar(QWidget):
         self.show()
 
     def load_config(self):
-        self.checkbox1.setChecked(config.get("sideBar/checkbox1") == "true")
+        pass
+        # self.checkbox1.setChecked(config.get("sideBar/checkbox1") == "true")
 
     def save_config(self):
-        config.put("sideBar/checkbox1", self.checkbox1.isChecked())
+        pass
+        # config.put("sideBar/checkbox1", self.checkbox1.isChecked())
 
     def wheelEvent(self, event):
         new_y = self.content.pos().y() + event.angleDelta().y()
@@ -802,6 +801,10 @@ class SideBar(QWidget):
         self.scrollBar.setFixedHeight(int(self.height()**2 / self.content.height()))
         self.scrollBar.move(self.width() - self.scrollBar.width(), self.scrollBar.pos().y())
         self.setGeometry(self.pos().x(), self.pos().y(), event.size().width(), event.size().height())
+
+        self.filters.setFixedWidth(self.width() - 20)
+
+        self.content.adjustSize()
         self.show()
 
     def show(self):
