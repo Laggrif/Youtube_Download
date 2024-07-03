@@ -18,4 +18,5 @@ This project make use of <a href='https://github.com/yt-dlp/yt-dlp'>yt-dlp</a> a
 ### Donate
 
 If you love my work and want to support me, feel free to buy me a coffee (or more) with the button below
+
 [![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/donate/?hosted_button_id=QU79XQ3CGUP74)
