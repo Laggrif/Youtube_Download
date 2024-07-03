@@ -25,4 +25,4 @@ If you love my work and want to support me, feel free to buy me a coffee (or mor
 <img alt="" border="0" src="https://www.paypal.com/en_CH/i/scr/pixel.gif" width="1" height="1" />
 </form>
 </div>
-![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)
+![Paypal](https://cdn.britannica.com/79/232779-050-6B0411D7/German-Shepherd-dog-Alsatian.jpg)
