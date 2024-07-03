@@ -1,7 +1,7 @@
 # Basic app to download music from youtube
 
-## Still in development, it is working, but not perfect at all.
-Do not hesitate to ask for features, make suggestions or pull requests. I may not answer you immediately, but it will still be useful for me and next users.
+## Still in development, new features will eventually be added
+Do not hesitate to ask for features, make suggestions or pull requests.
 
 ## Please Help
 
@@ -10,3 +10,16 @@ For the time, if you see any youtube url that is not working (for example `https
 
 
 This project make use of <a href='https://github.com/yt-dlp/yt-dlp'>yt-dlp</a> and <a href='https://wiki.qt.io/Qt_for_Python'>Pyside6</a>.
+
+<br>
+<br>
+<br>
+
+### Donate
+
+If you love my work and want to support me, feel free to buy me a coffee (or more) with the button below
+<form action="https://www.paypal.com/donate" method="post" target="_top">
+<input type="hidden" name="hosted_button_id" value="QU79XQ3CGUP74" />
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+<img alt="" border="0" src="https://www.paypal.com/en_CH/i/scr/pixel.gif" width="1" height="1" />
+</form>
