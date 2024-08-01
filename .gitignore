@@ -4,3 +4,6 @@
 /Youtube Download.spec
 build.py
 /src/res/data
+/dist/
+/build/
+/.qtc_clangd/

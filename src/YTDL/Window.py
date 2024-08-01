@@ -1,25 +1,21 @@
 import os.path
 import time
-from datetime import datetime
 from os.path import join
 
 from PySide6.QtCore import QThread, Qt, QPoint, QPropertyAnimation, QEasingCurve, \
-    QParallelAnimationGroup, QDateTime, QSize
-from PySide6.QtGui import QIcon, QResizeEvent, QFont
-from PySide6.QtNetwork import QNetworkCookie
-from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
-from PySide6.QtWebEngineWidgets import QWebEngineView
+    QParallelAnimationGroup, QSize, QObject, QEvent, QAbstractAnimation
+from PySide6.QtGui import QIcon, QResizeEvent, QPainter, QColor
 from PySide6.QtWidgets import *
 from yt_dlp.utils import parse_filesize, format_bytes
 
-import src.config as config
 from src.MainWindow import View, MainWindow
-from src.Youtube_music_downloader import DownloadThread
-from src.components.modifiablelistwidget import ModifiableList, FilterPopup
-from src.config import *
+from src.YTDL.Browser import YoutubeBrowser
+from src.YTDL.SideBar import SideBar
+from src.YTDL.logic.Youtube_music_downloader import DownloadThread, Filter
+from src.Config import *
 from src.utils import *
 from src.Directory import application_path
-from src.components.scrollbar import ScrollBar
+from src.StyleSheetParser import get_style
 
 
 def work(foo):
@@ -41,6 +37,8 @@ class Leaver:
 class YTDL(View):
     def __init__(self, parent, main_window: MainWindow):
         super().__init__(parent, 'Youtube Download')
+        self.config_category = ['YT_Settings']
+        self.setStyleSheet(get_style())
         self.main_window = main_window
         self.downloads = {}
 
@@ -67,6 +65,7 @@ class YTDL(View):
 
         # Input for path and its label
         self.path_input = QLineEdit(self)
+        self.path_input.setObjectName('path_input')
         self.path_input.setText(default_path())
         self.path_input_label = QLabel('Output path', self)
         self.path_input_label.setObjectName('input_label')
@@ -101,20 +100,28 @@ class YTDL(View):
         # ------------------ Sidebar ------------------
         self.sidebar_open = False
         # opaque background for sidebar
-        self.darken = QWidget(self)
+
+        class Darken(QWidget):
+            def mouseReleaseEvent(self, event):
+                if self.parent().darken_anim.state() != QAbstractAnimation.State.Running:
+                    self.parent().toggle_side_bar()
+        self.darken = Darken(self)
+        self.darken.setAttribute(Qt.WA_StyledBackground, True)
         self.darken.setObjectName('darken')
         self.darken.setStyleSheet("background-color: #000000;")
-        self.darken.setGeometry(self.WIDTH, 0, self.WIDTH, self.HEIGHT)
+        self.darken.setGeometry(0, 0, self.WIDTH, self.HEIGHT)
+
         # sidebar
         self.sideBar = SideBar(self)
         self.sideBar.setGeometry(self.WIDTH, 0, self.WIDTH - 100, self.height())
+        self.sideBar.setFixedWidth(self.WIDTH - 100)
         # sidebar button
-        self.settings_button = QPushButton("", self)
+        self.settings_button = QPushButton(parent=self)
         self.settings_button.setIcon(QIcon(os.path.join(application_path, 'res', 'icon', 'settings.png')))
-        self.settings_button.setIconSize(QSize(17, 17))
+        self.settings_button.setIconSize(QSize(16, 16))
         self.settings_button.setStyleSheet('border-radius: 0; margin: 0; padding: 0;')
         self.settings_button.setObjectName('settings_button')
-        self.settings_button.setGeometry(self.WIDTH - 20, 0, 20, 20)
+        self.settings_button.setGeometry(self.WIDTH - 22, 0, 22, 22)
         self.settings_button.clicked.connect(self.toggle_side_bar)
         self.settings_button.show()
         # animations
@@ -145,7 +152,7 @@ class YTDL(View):
             self.sidebar_open = True
             self.darken.move(0, 0)
             self.settings_button_anim.setEndValue(QPoint(self.WIDTH - 20 - self.sideBar.width(), 0))
-            self.sideBar_anim.setEndValue(QPoint(100, 0))
+            self.sideBar_anim.setEndValue(QPoint(self.WIDTH - self.sideBar.width(), 0))
             self.darken_anim.setEndValue(0.5)
             self.anims.start()
         else:
@@ -174,18 +181,27 @@ class YTDL(View):
                                                 QFileDialog.ShowDirsOnly)
         if path != '':
             self.path_input.setText(path)
-            set_default_path(path)
 
     def web_browser(self):
         self.browser.show()
 
+    def build_filter(self):
+        # widgets must handle by themselves if the processor must be on or off
+        filters = {
+            "ffmpeg": self.sideBar.ffmpeg.get_processor(),
+            "metadata": self.sideBar.metadata.get_processor(),
+        }
+        return Filter(filters)
+
     def download(self, url=None):
+        filter = self.build_filter()
+
         if not url and check_url(self.download_input.text()):
             url = self.download_input.text()
         elif not url:
             return
         th = QThread(None)
-        worker = DownloadThread(url, self.path_input.text())
+        worker = DownloadThread(url, self.path_input.text(), filter)
         worker.moveToThread(th)
         th.worker = worker
         th.started.connect(worker.run)
@@ -253,13 +269,17 @@ class YTDL(View):
                 widget.update_status('Already downloaded')
 
         elif isinstance(signal, list):
+            print(signal)
             if len(signal) == 4:
                 widget.set_size(signal[3])
                 widget.update_progress(float(signal[0].replace('%', '')), signal[1])
 
             if len(signal) == 3:
-
+                if signal[0] == 'size':
+                    print('size')
+                    widget.set_size(signal[1])
                 widget.update_progress(1.0, signal[2])
+
 
         self.output_scroll.update()
 
@@ -274,6 +294,8 @@ class YTDL(View):
 
         for widget in self.output_scroll.children():
             widget.resize(self.WIDTH - 40, widget.height())
+
+        self.sideBar.setGeometry(self.WIDTH - self.sideBar.width(), 0, self.sideBar.width(), self.HEIGHT)
 
         self.show_side_bar()
         # TODO update sizes based on window size
@@ -306,6 +328,11 @@ class YTDL(View):
         self.show_side_bar()
 
     def closeEvent(self, event):
+        self.sideBar.save_config()
+        if get("save_download_path", self.config_category) == "true":
+            print(self.path_input.text())
+            set_default_path(self.path_input.text())
+        save_config()
         if len(self.downloads) != 0:
             quit_msg = ("Are you sure you want to exit the program? \nAll downloads will be stopped: "
                         "incomplete downloads will be deleted.")
@@ -326,9 +353,7 @@ class ProgressWidget(QFrame):
         super().__init__(output_widget)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName('ProgressWidget')
-        with open(join(application_path, "res", "style.qss"), "r") as f:
-            _style = f.read()
-            self.setStyleSheet(_style)
+        self.setStyleSheet(get_style())
 
         self.time = time.time()
         self.size = ''
@@ -383,7 +408,8 @@ class ProgressWidget(QFrame):
 
         if speed is not None:
             if speed.startswith('Unknown'):
-                return
+                self.speed_label.setText('-B/s')
+                self.time_label.setText('∞')
             if str_to_int(speed) == 0.0:
                 self.time_label.setText('∞')
                 self.speed_label.setText(speed)
@@ -441,373 +467,3 @@ class ProgressWidget(QFrame):
         self.time_label.move(self.progress_bar.pos().x() + self.progress_bar.width() - 2 - self.time_label.width(),
                              self.progress_bar.pos().y() + self.progress_bar.height() + 2)
 
-
-class YoutubeBrowser(QFrame):
-    def __init__(self, parent: YTDL):
-        super().__init__()
-        self.save_cookies = config.get('cookies')
-        self.cookies = []
-        self.side_grips = []
-        self.corner_grips = []
-        self.YTDL = parent
-        main_window = parent.parent().parent()
-        self.setGeometry(main_window.x() + 40,
-                         main_window.y() + 40,
-                         main_window.width(),
-                         main_window.height() + 30)
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
-        self.setObjectName('youtube_browser')
-
-        self.nav_bar = CustomTitleBar(self)
-
-        self.browser = QWebEngineView(self)
-        self.browser.page().fullScreenRequested.connect(self.fullscreen_on)
-
-        self.profile_browser = QWebEngineProfile.defaultProfile()
-        self.page_browser = QWebEnginePage(self.profile_browser, self.browser)
-        self.browser.setPage(self.page_browser)
-        self.cookie_store = self.profile_browser.cookieStore()
-        if self.save_cookies:
-            self.cookie_store.cookieAdded.connect(lambda cook: self.cookies.append(cook))
-            self.load_session()
-
-        self.browser.setUrl('https://www.youtube.com')
-        self.browser.urlChanged.connect(self.process_url)
-
-        self.button = QPushButton(self)
-        self.button.setGeometry(self.width() - 40, self.height() - 40, 35, 35)
-        self.button.setObjectName('download_icon')
-        self.button.clicked.connect(self.download)
-
-        self.add_grip()
-        self.update_grip()
-
-    def save_session(self):
-        serializable_cookies = {}
-        for cookie in self.cookies:
-            cook = {
-                'name': cookie.name(),
-                'value': cookie.value(),
-                'domain': cookie.domain(),
-                'path': cookie.path(),
-                'secure': cookie.isSecure(),
-                'httpOnly': cookie.isHttpOnly(),
-                'expirationDate': cookie.expirationDate().toSecsSinceEpoch()
-            }
-            serializable_cookies[cookie.name()] = cook
-        config.put('cookies', serializable_cookies)
-
-    def load_session(self):
-        # TODO Might be a huge security risk
-        cookies = config.get('cookies')
-        if not cookies:
-            return
-        self.cookie_store.deleteAllCookies()
-        for cookie in cookies.values():
-            if QDateTime.currentSecsSinceEpoch() > cookie['expirationDate'] >= 0:
-                continue
-            cook = QNetworkCookie()
-            cook.setName(cookie['name'])
-            cook.setValue(cookie['value'])
-            cook.setDomain(cookie['domain'])
-            cook.setPath(cookie['path'])
-            cook.setSecure(cookie['secure'])
-            cook.setHttpOnly(cookie['httpOnly'])
-            cook.setExpirationDate(QDateTime.fromSecsSinceEpoch(cookie['expirationDate']))
-
-            self.cookie_store.setCookie(cook)
-
-    def fullscreen_on(self, request):
-        if self.isFullScreen():
-            self.showNormal()
-            self.button.show()
-        else:
-            self.showFullScreen()
-            self.button.hide()
-        request.accept()
-
-    def download(self):
-        if check_url(self.browser.url().toString()):
-            self.YTDL.download(url=self.browser.url().toString())
-
-    def process_url(self):
-        if check_url(self.browser.url().toString()):
-            self.button.show()
-        else:
-            self.button.hide()
-        self.add_to_history()
-        self.nav_bar.change_url(self.browser.url().toString())
-
-    def add_to_history(self):
-        history = config.get('history')
-        history[self.browser.url()] = datetime.now().strftime('%d%m%Y. %H:%M:%S')
-        config.put('history', history)
-        config.save_config()
-
-    def back(self):
-        self.browser.back()
-
-    def forward(self):
-        self.browser.forward()
-
-    def reload(self):
-        self.browser.reload()
-
-    def search(self, url):
-        self.browser.setUrl(url)
-
-    def add_grip(self):
-        gl = SizeGrip(self, Qt.Edge.LeftEdge)
-        gt = SizeGrip(self, Qt.Edge.TopEdge)
-        gr = SizeGrip(self, Qt.Edge.RightEdge)
-        gb = SizeGrip(self, Qt.Edge.BottomEdge)
-        self.side_grips = [gt, gr, gb, gl]
-
-        self.corner_grips = [QSizeGrip(self) for i in range(4)]
-
-    def update_grip(self):
-        self.side_grips[0].setGeometry(5, 0, self.width() - 10, 5)
-        self.side_grips[1].setGeometry(self.width() - 5, 0, 5, self.height() - 10)
-        self.side_grips[2].setGeometry(0, self.height() - 5, self.width() - 10, 5)
-        self.side_grips[3].setGeometry(0, 5, 5, self.height() - 10)
-
-        self.corner_grips[0].setGeometry(0, 0, 5, 5)
-        self.corner_grips[1].setGeometry(self.width() - 5, 0, 5, 5)
-        self.corner_grips[2].setGeometry(self.width() - 5, self.height() - 5, 5, 5)
-        self.corner_grips[3].setGeometry(0, self.height() - 5, 5, 5)
-
-    def resizeEvent(self, event: QResizeEvent):
-        self.show()
-        self.update_grip()
-        event.accept()
-
-    def show(self) -> None:
-        super().show()
-        self.nav_bar.setGeometry(0, 0, self.width(), 32)
-        self.button.move(self.width() - 40, self.height() - 40)
-        self.browser.setGeometry(0, 32, self.width(), self.height() - 32)
-
-    def closeEvent(self, event):
-        if self.save_cookies:
-            self.save_session()
-
-
-class CustomTitleBar(QFrame):
-    clickPos = None
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setObjectName('custom_title_bar')
-
-        self.close_button = QPushButton('⛌', self)
-        self.close_button.setObjectName('windows_close_button')
-        self.close_button.clicked.connect(self.parent().close)
-
-        self.maximize_button = QPushButton('⃞', self)
-        self.maximize_button.setObjectName('windows_maximize_button')
-        self.maximize_button.clicked.connect(self.maximize)
-
-        self.forward_button = QPushButton('🡪', self)
-        self.forward_button.setFont(QFont('Arial', 12))
-        self.forward_button.setGeometry(45, 1, 30, 28)
-        self.forward_button.setObjectName('web_navigation_button')
-        self.forward_button.clicked.connect(self.parent().forward)
-
-        self.back_button = QPushButton('🡨', self)
-        self.back_button.setFont(QFont('Arial', 12))
-        self.back_button.setGeometry(20, 1, 30, 28)
-        self.back_button.setObjectName('web_navigation_button')
-        self.back_button.clicked.connect(self.parent().back)
-
-        self.reload_button = QPushButton('⭮', self)
-        self.reload_button.setFont(QFont('Arial', 15))
-        self.reload_button.setGeometry(90, 1, 30, 28)
-        self.reload_button.setObjectName('web_navigation_button')
-        self.reload_button.clicked.connect(self.parent().reload)
-
-        self.search_bar = QLineEdit(self)
-        self.search_bar.setObjectName('download_input')
-        self.search_bar.setFont(QFont('Arial', 15))
-        self.search_bar.returnPressed.connect(self.search)
-
-        self.search_button = QPushButton(self)
-        self.search_button.setIcon(QIcon(join(application_path, 'res', 'icon', 'search.png')))
-        self.search_button.setObjectName('search_button')
-        self.search_button.clicked.connect(self.search)
-
-    def change_url(self, url):
-        self.search_bar.setText(url)
-
-    def search(self):
-        self.parent().search(self.search_bar.text())
-
-    def maximize(self):
-        if self.parent().isMaximized():
-            self.maximize_button.setText('⃞')
-            self.parent().showNormal()
-        else:
-            self.maximize_button.setText('❐')
-            self.parent().showMaximized()
-
-    def resizeEvent(self, event: QResizeEvent):
-        self.show()
-        event.accept()
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.clickPos = event.scenePosition().toPoint()
-
-    def mouseMoveEvent(self, event):
-        if self.clickPos is not None:
-            self.window().move(event.globalPosition().toPoint() - self.clickPos)
-
-    def mouseReleaseEvent(self, QMouseEvent):
-        self.clickPos = None
-
-    def closeClicked(self):
-        self.window().close()
-
-    def maxClicked(self):
-        self.window().showMaximized()
-
-    def normalClicked(self):
-        self.window().showNormal()
-
-    def minClicked(self):
-        self.window().showMinimized()
-
-    def show(self) -> None:
-        self.close_button.setGeometry(self.width() - 45, 1, 45, 30)
-        self.maximize_button.setGeometry(self.width() - 90, 1, 45, 30)
-        self.search_bar.setGeometry(self.width() / 4, 3, self.width() / 2 - 24, 24)
-        self.search_button.setGeometry(self.width() / 4 * 3 - 24, 3, 24, 24)
-
-
-class SizeGrip(QWidget):
-    def __init__(self, parent, edge):
-        QWidget.__init__(self, parent)
-        if edge == Qt.LeftEdge:
-            self.setCursor(Qt.SizeHorCursor)
-            self.resizeFunc = self.resizeLeft
-        elif edge == Qt.TopEdge:
-            self.setCursor(Qt.SizeVerCursor)
-            self.resizeFunc = self.resizeTop
-        elif edge == Qt.RightEdge:
-            self.setCursor(Qt.SizeHorCursor)
-            self.resizeFunc = self.resizeRight
-        else:
-            self.setCursor(Qt.SizeVerCursor)
-            self.resizeFunc = self.resizeBottom
-        self.mousePos = None
-
-    def resizeLeft(self, delta):
-        window = self.window()
-        width = max(window.minimumWidth(), window.width() - delta.x())
-        geo = window.geometry()
-        geo.setLeft(geo.right() - width)
-        window.setGeometry(geo)
-
-    def resizeTop(self, delta):
-        window = self.window()
-        height = max(window.minimumHeight(), window.height() - delta.y())
-        geo = window.geometry()
-        geo.setTop(geo.bottom() - height)
-        window.setGeometry(geo)
-
-    def resizeRight(self, delta):
-        window = self.window()
-        width = max(window.minimumWidth(), window.width() + delta.x())
-        window.resize(width, window.height())
-
-    def resizeBottom(self, delta):
-        window = self.window()
-        height = max(window.minimumHeight(), window.height() + delta.y())
-        window.resize(window.width(), height)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.mousePos = event.pos()
-
-    def mouseMoveEvent(self, event):
-        if self.mousePos is not None:
-            delta = event.pos() - self.mousePos
-            self.resizeFunc(delta)
-
-    def mouseReleaseEvent(self, event):
-        self.mousePos = None
-
-
-class SideBar(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setObjectName('SideBar')
-        _style = None
-        with open(join(application_path, "res", "style.qss"), "r") as f:
-            _style = f.read()
-            self.setStyleSheet(_style)
-
-        self.content = QWidget(self)
-        layout = QVBoxLayout(self.content)
-        self.content.setObjectName('SideBarContent')
-        self.content.setLayout(layout)
-
-        self.scrollBar = ScrollBar(self)
-        self.scrollBar.color = (120, 120, 120)
-        self.scrollBar.setObjectName('ScrollBar')
-        self.scrollBar.setGeometry(self.width() - 5, 0, 5, int(self.height()**2 / self.content.height()))
-        self.scrollBar.view = self.content
-
-        # filters
-        self.filters = ModifiableList(self, popup="FilterPopup")
-
-        # add each element to the layout
-        self.content.layout().addWidget(self.filters)
-
-        # space the elements of the layout
-        layout.setSpacing(10)
-        self.content.adjustSize()
-
-        self.load_config()
-
-        self.show()
-
-    def load_config(self):
-        pass
-        # self.checkbox1.setChecked(config.get("sideBar/checkbox1") == "true")
-
-    def save_config(self):
-        pass
-        # config.put("sideBar/checkbox1", self.checkbox1.isChecked())
-
-    def wheelEvent(self, event):
-        new_y = self.content.pos().y() + event.angleDelta().y()
-
-        if new_y > 0:
-            self.content.move(0, 0)
-            self.scrollBar.move(self.scrollBar.x(), 0)
-        elif new_y < self.height() - self.content.height():
-            self.content.move(0, self.height() - self.content.height())
-            self.scrollBar.move(self.scrollBar.x(), self.height() - self.scrollBar.height())
-        else:
-            self.content.move(0, new_y)
-            self.scrollBar.move(self.scrollBar.x(), - int(self.height() * self.content.pos().y() / self.content.height()))
-
-        event.accept()
-        self.show()
-
-    def resizeEvent(self, event: QResizeEvent):
-        event.accept()
-        self.scrollBar.setFixedHeight(int(self.height()**2 / self.content.height()))
-        self.scrollBar.move(self.width() - self.scrollBar.width(), self.scrollBar.pos().y())
-        self.setGeometry(self.pos().x(), self.pos().y(), event.size().width(), event.size().height())
-
-        self.filters.setFixedWidth(self.width() - 20)
-
-        self.content.adjustSize()
-        self.show()
-
-    def show(self):
-        super().show()
-        self.content.show()
-        self.scrollBar.show()

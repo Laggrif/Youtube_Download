@@ -9,8 +9,7 @@ from os.path import sep, join
 import yt_dlp as yt
 from mutagen.easyid3 import EasyID3
 from PySide6.QtCore import Signal, QObject
-from yt_dlp.postprocessor import FFmpegPostProcessor, PostProcessor
-from src.Directory import application_path, data_path
+from yt_dlp.postprocessor import PostProcessor
 
 
 class DownloadThread(QObject):
@@ -26,12 +25,13 @@ class DownloadThread(QObject):
             time.sleep(0.5)
         event.accept()
 
-    def __init__(self, url, path):
+    def __init__(self, url, path, filter):
         super().__init__(parent=None)
         self.id = self.__hash__()
         self.url = url
         self.path = path
-        self.filter = Filter(self, {})
+        self.filter = filter
+        self.filter.init(self)
 
     def download(self):
 
@@ -39,7 +39,6 @@ class DownloadThread(QObject):
             'format': 'bestaudio/best',
             'restrictfilenames': True,
             'outtmpl': self.path + '/%(title)s.%(ext)s',
-            """"'ignoreerrors': True,"""
             'match_filter': self.filter.filter,
         }
 
@@ -48,9 +47,10 @@ class DownloadThread(QObject):
 
         with yt.YoutubeDL(ydl_opts) as ydl:
             # yt.utils.POSTPROCESS_WHEN
-            ydl.add_post_processor(self.filter["ffmpeg"], when='post_process')
-            ydl.add_post_processor(self.filter["metadata"], when='post_process')
-            ydl.add_post_processor(self.filter["finished"], when='post_process')
+            for p in self.filter.filters.keys():
+                if self.filter.filters[p].on and p in self.filter.postprocessors:
+                    ydl.add_post_processor(self.filter.filters[p], when='post_process')
+
             ydl.download([self.url])
 
     def run(self):
@@ -69,18 +69,16 @@ class DownloadThread(QObject):
 
 
 class Filter:
-    def __init__(self, parent, args):
-        self.parent = parent
-        self.args = args
-        self.filters = {
-            "metadata": MetadataPostProcessor(),
-            "ffmpeg": FFMpegThreadToMP3(),
-            "finished": Finished(signal=self.parent.finished, id=self.parent.id)
-        }
+    postprocessors = ["metadata", "ffmpeg", "finished"]
 
-        for a in args.keys():
-            if a in self.filters:
-                self.filters[a].on = args[a]
+    def __init__(self, filters):
+        self.parent = None
+        self.filters = {**filters, "finished": Finished()}
+        print(self.filters["metadata"].data)
+
+    def init(self, parent):
+        self.parent = parent
+        self.filters["finished"] = Finished(signal=self.parent.finished, id=self.parent.id)
 
     def filter(self, data):
         pass
@@ -107,59 +105,6 @@ class Finished(PostProcessor):
         return [], info
 
 
-class FFMpegThreadToMP3(PostProcessor):
-    def __init__(self, downloader=None, on=True):
-        super().__init__(downloader)
-        self.proc = None
-        self.out = None
-        self.on = on
-        self.done = False
-
-    def run(self, information, format='mp3'):
-        if self.on:
-            input_file = information['filepath']
-            self.out = input_file.rsplit('.', 1)[0] + f'.{format}'
-            self.to_screen(f'[ffmpeg format]: {format}', prefix=False)
-            self.proc = subprocess.Popen(
-                f'"{join(application_path, "ffmpeg", "bin", "ffmpeg.exe")}" -y -i "{input_file}" -vn -acodec '
-                f'libmp3lame "{self.out}"',
-                stderr=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                universal_newlines=True)
-            for line in self.proc.stderr:
-                if line.startswith('size='):
-                    self.to_screen('[ffmpeg]: ' + line.replace('\n', ''), prefix=False)
-                else:
-                    print(line.replace('\n', ''))
-            self.proc.wait()
-            if self.on:
-                os.remove(input_file)
-                information['filepath'] = self.out
-                self.done = True
-        return [], information
-
-
-class MetadataPostProcessor(PostProcessor):
-
-    def __init__(self, downloader=None, on=True):
-        super().__init__(downloader)
-        self.on = on
-
-    def run(self, info):
-        if self.on:
-            id3 = EasyID3(info['filepath'])
-            print(id3.keys())
-            id3['title'] = info['title']
-            id3['artist'] = info['uploader']
-            if 'playlist_title' in info:
-                id3['album'] = info['playlist_title']
-            id3['date'] = info['upload_date']
-            if 'playlist_index' in info and info['playlist_index']:
-                id3['tracknumber'] = info['playlist_index']
-            id3.save()
-        return [], info
-
-
 class Logger:
     def __init__(self, signal: Signal, id):
         self.signal = signal
@@ -173,7 +118,7 @@ class Logger:
             self.info(msg)
 
     def info(self, msg: str):
-        print(msg)
+        print(msg + '\n')
         # [youtube] handling
         if msg.startswith('[youtube] Extracting URL'):
             self.signal.emit([self.id, 'Extracting:' + msg.split(':', 1)[1]])
@@ -259,10 +204,12 @@ class Logger:
                 bitrate = time_[1].split('speed=', 1)[0].replace('its', '')
                 # format: size, time, bitrate
                 self.signal.emit([self.id,
-                                  [size_[0],
+                                  [size_[0].lstrip('size='),
                                    time_[0],
                                    bitrate,
                                    ]])
+        elif msg.startswith('ffmpeg'):
+            msg.find('Duration: ')
 
         # Deleting handling
         elif msg.startswith('Deleting') and not self.is_playlist:
@@ -277,7 +224,6 @@ class Logger:
 
     def error(self, msg):
         self.signal.emit([self.id, 'error'])
-
 
 
 if __name__ == "__main__":

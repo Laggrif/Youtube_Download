@@ -3,8 +3,11 @@ import sys
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QMainWindow, QApplication, QStackedWidget, QFrame, QPushButton
 
-from src.config import save_config
+from src.Config import save_config
+from src.StyleSheetParser import get_style
 
+WIDTH = 700
+HEIGHT = 400
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -12,8 +15,9 @@ class MainWindow(QMainWindow):
 
         geometry = QApplication.primaryScreen().availableGeometry()
 
-        self.setGeometry(geometry.width() / 2 - 350, geometry.height() / 2 - 200, 700, 400)
+        self.setGeometry(geometry.width() / 2 - WIDTH / 2, geometry.height() / 2 - HEIGHT / 2, WIDTH, HEIGHT)
         self.setWindowTitle("Youtube Downloader and more :)")
+        self.setStyleSheet(get_style())
 
         self.stack = QStackedWidget(self)
         self.stack.resize(self.width(), self.height())
@@ -41,11 +45,11 @@ class MainWindow(QMainWindow):
         self.change_view(self.home_view)
 
     def resizeEvent(self, event: QResizeEvent):
-        event.accept()
         self.stack.resize(self.width(), self.height())
         self.home_view.resize(self.width(), self.height())
         for view in list(self.views.keys()):
             view.resize(self.width(), self.height())
+        event.accept()
 
     def closeEvent(self, event):
         for view in list(self.views.keys()):
@@ -79,7 +83,7 @@ class Home(QFrame):
         button.show()
 
         self.setMinimumHeight((self.parent().count() - 1) * 45 + 30 + 20)
-        self.setMinimumWidth(max(self.main_window.minimumWidth(), button.width() + 60))
+        # self.setMinimumWidth(max(self.main_window.minimumWidth(), button.width() + 60))
         self.show()
 
     def resizeEvent(self, event: QResizeEvent):
@@ -99,6 +103,7 @@ class View(QFrame):
         super().__init__()
         self.setParent(parent)
         self.name = name
+        self.config_category = []
 
         self.button = QPushButton('Home')
         self.button.setParent(self)

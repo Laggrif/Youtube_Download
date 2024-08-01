@@ -1,0 +1,15 @@
+{
+  "@background": "#f0f0f0",
+  "@medium_bg": "#e0e0e0",
+  "@border": "#a9a9a9",
+  "@active_border": "#707070",
+  "@text": "#222222",
+  "@input_bg": "#fafafa",
+  "@clickable_bg": "#dfdfdf",
+  "@clickable_hover": "#e9e9e9",
+  "@clickable_pressed": "#e2e2e9",
+  "@black": "#000000",
+  "@disabled_text": "#888888",
+  "@disabled_bg": "#f0f0f0",
+  "@disabled_border": "#d9d9d9"
+}

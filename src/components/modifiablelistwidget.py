@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QWidget, QPushButton, QListWidget, QGridLayout, QD
     QComboBox, QHBoxLayout, QLayout, QRadioButton, QSpacerItem, QSizePolicy, QFormLayout, QDateTimeEdit
 
 from src.components.suggestionwidget import QSuggestionWidget
+from src.StyleSheetParser import get_style
+
 if getcwd().endswith("components"):
     application_path = join(getcwd(), "..")
 else:
@@ -29,9 +31,7 @@ class ModifiableList(QWidget):
         super().__init__(parent)
         self.setVisible(True)
         self.setObjectName("ModifiableListWidget")
-        with open(join(application_path, "res", "style.qss"), "r") as f:
-            _style = f.read()
-            self.setStyleSheet(_style)
+        self.setStyleSheet(get_style())
 
         self.popup_name = popup
         self.popup = None
@@ -43,12 +43,12 @@ class ModifiableList(QWidget):
         self.add_button = QPushButton("+", self)
         self.add_button.clicked.connect(self.add_item)
         self.add_button.setObjectName("ModifiableListWidgetButton")
-        self.add_button.setStyleSheet("border-top-right-radius: 5px; border-bottom: 0;")
+        self.add_button.setStyleSheet("border-top-right-radius: 5px;;")
 
         self.edit_button = QPushButton("🖉", self)
         self.edit_button.clicked.connect(self.edit_item)
         self.edit_button.setObjectName("ModifiableListWidgetButton")
-        self.edit_button.setStyleSheet("border-bottom: 0;")
+        self.edit_button.setStyleSheet("border-bottom: 0; border-top: 0;")
 
         self.remove_button = QPushButton("-", self)
         self.remove_button.clicked.connect(self.remove_item)
@@ -73,6 +73,8 @@ class ModifiableList(QWidget):
         self.popup.exec()
 
     def edit_item(self):
+        if self.list_widget.currentItem() is None:
+            return
         name = self.list_widget.currentItem().text()
         self.popup = getattr(
             __import__("src.components.modifiablelistwidget", fromlist=[self.popup_name]), self.popup_name)(self)
@@ -182,6 +184,9 @@ class FilterPopup(QDialog):
         self.central_widget.setLayout(QFormLayout())
 
         self.central_widget.layout().addRow("title", QSuggestionWidget(self, ["title", "artist", "album", "genre"]))
+        self.central_widget.layout().addRow("artist", QSuggestionWidget(self, ["title", "artist", "album", "genre"]))
+        self.central_widget.layout().addRow("album", QSuggestionWidget(self, ["title", "artist", "album", "genre"]))
+        self.central_widget.layout().addRow("genre", QSuggestionWidget(self, ["title", "artist", "album", "genre"]))
 
         self.return_data = {"name": TYPE_TO_DESCRIPTION["Metadata"],
                             "data": {

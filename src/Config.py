@@ -19,12 +19,26 @@ def save_config():
     settings.sync()
 
 
-def get(key):
-    return settings.value(key)
+def get(key, group=None):
+    if type(group) is str:
+        value = settings.value(group + "/" + key)
+        return value
+    elif type(group) is list:
+        value = settings.value("/".join(group) + "/" + key)
+        return value
+    elif group is None:
+        return settings.value(key)
 
 
-def put(key, value):
-    settings.setValue(key, value)
+def put(key, value, group=None):
+    if type(group) is str:
+        settings.setValue(group + "/" + key, value)
+        return
+    elif type(group) is list:
+        settings.setValue("/".join(group) + "/" + key, value)
+        return
+    elif group is None:
+        settings.setValue(key, value)
 
 
 if not settings.contains('default path'):
@@ -33,7 +47,3 @@ if not settings.contains('history'):
     put('history', {})
 if not settings.contains('save_cookies'):
     put('save_cookies', False)
-
-# TODO for testing only, replace with real values
-if not settings.contains('sideBar/checkbox1'):
-    put('sideBar/checkbox1', False)
