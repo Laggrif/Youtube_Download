@@ -189,6 +189,7 @@ Section "Uninstall"
 
   ; Remove Youtube_Download folder under %Appdata%
   RMDir /r "$APPDATA\Youtube Downloader"
+  Delete $APPDATA\Youtube_Downloader.launch.pyw.log
 
 
   Delete $INSTDIR\uninstall.exe
