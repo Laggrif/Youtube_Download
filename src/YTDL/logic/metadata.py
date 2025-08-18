@@ -21,11 +21,11 @@ IMPORTANT_METADATA = [
     'genre',
     'language',
     'length',
-    'originaldate',
+    'original_date',
     'performer',
-    'releasecountry',
+    'release_country',
     'title',
-    'tracknumber'
+    'track_number'
 ]
 
 equivalent = {
@@ -36,11 +36,11 @@ equivalent = {
     "genre": "genre",
     "language": "language",
     "length": None,
-    "originaldate": "date",
+    "original_date": "date",
     "performer": "performer",
-    "releasecountry": "comment",
+    "release_country": "comment",
     "title": "title",
-    "tracknumber": "track"
+    "track_number": "track"
 }
 
 METADATA_TAGS = list(EasyID3.valid_keys.keys())
