@@ -50,8 +50,13 @@ class DownloadThread(QObject):
             for p in self.filter.filters.keys():
                 if self.filter.filters[p].on and p in self.filter.postprocessors:
                     ydl.add_post_processor(self.filter.filters[p], when='post_process')
+            try:
+                ydl.download([self.url])
+            except Exception as e:
+                print("Error in download")
+                print(e)
 
-            ydl.download([self.url])
+        self.finished.emit()
 
     def run(self):
         self.downloads[self.id] = self
@@ -65,20 +70,20 @@ class DownloadThread(QObject):
             self.filter["ffmpeg"].proc.wait()
             if not self.filter["ffmpeg"].done and self.filter["ffmpeg"].out and os.path.exists(self.filter["ffmpeg"].out):
                 os.remove(self.filter["ffmpeg"].out)
-        del self.downloads[self.id]
+        self.downloads.pop(self.id, None)
+        DownloadThread.downloads.pop(self.id, None)
 
 
 class Filter:
-    postprocessors = ["metadata", "ffmpeg", "finished"]
+    postprocessors = ["metadata", "ffmpeg"]
 
     def __init__(self, filters):
         self.parent = None
-        self.filters = {**filters, "finished": Finished()}
+        self.filters = {**filters}
         print(self.filters["metadata"].data)
 
     def init(self, parent):
         self.parent = parent
-        self.filters["finished"] = Finished(signal=self.parent.finished, id=self.parent.id)
 
     def filter(self, data):
         pass
@@ -89,20 +94,6 @@ class Filter:
 
     def __getitem__(self, item):
         return self.filters[item]
-
-
-class Finished(PostProcessor):
-    def __init__(self, downloader=None, signal=None, id=None, on=True):
-        super().__init__(downloader)
-        self.signal = signal
-        self.id = id
-        self.on = on
-
-    def run(self, info):
-        if self.on:
-            self.signal.emit()
-            del DownloadThread.downloads[self.id]
-        return [], info
 
 
 class Logger:
@@ -118,7 +109,6 @@ class Logger:
             self.info(msg)
 
     def info(self, msg: str):
-        print(msg + '\n')
         # [youtube] handling
         if msg.startswith('[youtube] Extracting URL'):
             self.signal.emit([self.id, 'Extracting:' + msg.split(':', 1)[1]])
@@ -198,18 +188,13 @@ class Logger:
             self.signal.emit([self.id, 'ffmpeg format: ' + msg.split(': ', 1)[1]])
         elif msg.startswith('[ffmpeg]'):
             data = msg.split(': ', 1)[1].replace(' ', '')
-            if data.startswith('size='):
-                size_ = data.split('time=', 1)
-                time_ = size_[1].split('bitrate=', 1)
-                bitrate = time_[1].split('speed=', 1)[0].replace('its', '')
-                # format: size, time, bitrate
-                self.signal.emit([self.id,
-                                  [size_[0].lstrip('size='),
-                                   time_[0],
-                                   bitrate,
-                                   ]])
-        elif msg.startswith('ffmpeg'):
-            msg.find('Duration: ')
+            if data.startswith('out_time_ms='):
+                time_ms = data.split('out_time_ms=', 1)[1]
+                self.signal.emit([self.id, 'ffmpeg time: ' + time_ms])
+            elif data.startswith('bitrate='):
+                self.signal.emit([self.id, 'ffmpeg bitrate: ' + data.replace(' ', '').split('bitrate=', 1)[1]])
+            elif data.startswith('Duration:'):
+                self.signal.emit([self.id, 'ffmpeg duration: ' + data.split('Duration:', 1)[1].split(',')[0]])
 
         # Deleting handling
         elif msg.startswith('Deleting') and not self.is_playlist:
