@@ -7,3 +7,4 @@ build.py
 /dist/
 /build/
 /.qtc_clangd/
+/src/ffmpeg/
