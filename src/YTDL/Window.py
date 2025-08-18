@@ -268,18 +268,37 @@ class YTDL(View):
                 widget.update_name(signal.split(': ')[1])
                 widget.update_status('Already downloaded')
 
+            elif signal.startswith('ffmpeg format'):
+                widget.ffmpeg_format = signal.split(': ')[1]
+                widget.update_status('Converting to ' + signal.split(': ')[1])
+
+            elif signal.startswith('ffmpeg duration'):
+                t = signal.split(': ')[1]
+                h = t.split(':', 1)
+                m = h[1].split(':', 1)
+                s = m[1].split('.', 1)
+                time_s = int(h[0]) * 3600 + int(m[0]) * 60 + int(s[0])
+                time_ms = time_s * 1000000 + int(s[1])
+                print(time_ms)
+                widget.ffmpeg_duration = time_ms
+
+            elif signal.startswith('ffmpeg time'):
+                time = int(signal.split(': ')[1])
+                widget.update_progress(time / widget.ffmpeg_duration * 100)
+
+            elif signal.startswith('ffmpeg speed'):
+                widget.update_progress(speed=signal.split(': ')[1])
+
         elif isinstance(signal, list):
-            print(signal)
             if len(signal) == 4:
                 widget.set_size(signal[3])
                 widget.update_progress(float(signal[0].replace('%', '')), signal[1])
 
-            if len(signal) == 3:
+            elif len(signal) == 3:
                 if signal[0] == 'size':
                     print('size')
                     widget.set_size(signal[1])
                 widget.update_progress(1.0, signal[2])
-
 
         self.output_scroll.update()
 
@@ -355,6 +374,9 @@ class ProgressWidget(QFrame):
         self.setObjectName('ProgressWidget')
         self.setStyleSheet(get_style())
 
+        self.ffmpeg_duration = 0
+        self.ffmpeg_format = ''
+
         self.time = time.time()
         self.size = ''
         self.speed = []
@@ -404,7 +426,7 @@ class ProgressWidget(QFrame):
             return
 
         if progress is not None:
-            self.progress_bar.setValue(progress)
+            self.progress_bar.setValue(max(min(progress, 100), 0))
 
         if speed is not None:
             if speed.startswith('Unknown'):
