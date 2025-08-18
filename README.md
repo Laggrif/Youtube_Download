@@ -1,15 +1,22 @@
 # Basic app to download music from youtube
 
-## Still in development, new features will eventually be added
-Do not hesitate to ask for features, make suggestions or pull requests.
+## Installation
+Download the .exe file from the <a href='https://github.com/Laggrif/Youtube_Download/releases/latest'>release page</a> and proceed with the installer.
 
-## Please Help
+## Building
+Clone the project on your local machine, download ffmpeg from <a href='https://ffmpeg.org/download.html'>their website</a> and extract it under ```src/ffmpeg```.
+Install the python packages with ```pip install requirements.txt``` and run ```Build.py```. You now have your own .exe installer
+
+## Still in development, new features will eventually be added
+Do not hesitate to ask for features and make suggestions or pull requests.
+
+### Please Help
 
 I am ultimately planning on putting a protection so you cannot download unsupported urls. 
-For the time, if you see any youtube url that is not working (for example `https://www.youtube.com`), please put a response to <a href='https://github.com/Laggrif/Youtube_Download/issues/1'>this issue</a> with the url and I will add them to the blacklist as soon as possible
+For the time, it is only a manually written blacklist. Therefore, if you see any youtube url that is not working (for example `https://www.youtube.com`), please put a response to <a href='https://github.com/Laggrif/Youtube_Download/issues/1'>this issue</a> with the url and I will add them to the blacklist as soon as possible.
 
-
-This project make use of <a href='https://github.com/yt-dlp/yt-dlp'>yt-dlp</a> and <a href='https://wiki.qt.io/Qt_for_Python'>Pyside6</a>.
+## Dependencies
+This project make use of <a href='https://github.com/yt-dlp/yt-dlp'>yt-dlp</a> and <a href='https://wiki.qt.io/Qt_for_Python'>Pyside6</a>. A huge thanks to them for their amazing work.
 
 <br>
 <br>
