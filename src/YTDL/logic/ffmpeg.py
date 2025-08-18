@@ -42,17 +42,20 @@ class FFMpegThreadToMP3(PostProcessor):
                     args = '-c copy'
 
                 print(
-                    f'"{join(application_path, "ffmpeg", "bin", "ffmpeg.exe")}" -y -i "{input_file}" {args} "{self.out}"')
+                    f'"{join(application_path, "ffmpeg", "bin", "ffmpeg.exe")}" -y -progress pipe:2 -i "{input_file}" {args} "{self.out}"')
                 self.proc = subprocess.Popen(
-                    f'"{join(application_path, "ffmpeg", "bin", "ffmpeg.exe")}" -y -i "{input_file}" {args} "{self.out}"',
+                    f'"{join(application_path, "ffmpeg", "bin", "ffmpeg.exe")}" -y -progress pipe:2 -i "{input_file}" {args} "{self.out}"',
                     stderr=subprocess.PIPE,
                     stdin=subprocess.PIPE,
-                    universal_newlines=True)
+                    universal_newlines=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW)
                 for line in self.proc.stderr:
-                    if line.startswith('size='):
+                    if (line.startswith('out_time_ms=')
+                            or line.startswith('bitrate=')
+                            or line.replace(' ', '').startswith('Duration:')):
                         self.to_screen('[ffmpeg]: ' + line.replace('\n', ''), prefix=False)
                     else:
-                        print(line.replace('\n', ''))
+                        print('---' + line.replace('\n', ''))
                 self.proc.wait()
 
                 if self.on:
