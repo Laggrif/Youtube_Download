@@ -11,7 +11,7 @@ from src.YTDL.Metadata import MetadataWidget
 from src.YTDL.Settings import SettingsWidget
 from src.components.modifiablelistwidget import ModifiableList
 from src.components.scrollbar import ScrollBar
-import src.Config as config
+from src.Config import settings
 
 
 class SideBar(QWidget):
@@ -56,10 +56,12 @@ class SideBar(QWidget):
         self.show()
 
     def save_config(self):
-        if str(config.get("save_on_exit", self.config_category)).lower() == "true":
+        if settings.save_on_exit.get():
             self.metadata.save_config()
             self.ffmpeg.save_config()
             self.settings.save_config()
+        else:
+            self.settings.restore_config()
 
     def wheelEvent(self, event):
         new_y = self.content.pos().y() + event.angleDelta().y()

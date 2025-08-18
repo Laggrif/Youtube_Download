@@ -5,7 +5,8 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QRadioButton
 
 from src.components.headerwithlinewidget import Header
 from src.components.inputwithlabelwidget import InputWithLabel
-import src.Config as config
+from src.Config import settings
+from src.YTDL.Browser import YoutubeBrowser
 
 
 # save on exit
@@ -18,11 +19,6 @@ import src.Config as config
 class SettingsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        if hasattr(parent, 'config_category'):
-            self.config_category = parent.config_category.copy()
-            self.config_category.append('Settings')
-        else:
-            self.config_category = 'Settings'
         self.setObjectName("SettingsWidget")
         self.setLayout(QVBoxLayout())
         self.layout().setAlignment(Qt.AlignTop)
@@ -40,7 +36,7 @@ class SettingsWidget(QWidget):
         self.content.layout().setContentsMargins(20, 0, 20, 0)
 
         self.contents = {"Save on exit": [], "Minimize to tray": [], "Delete completed downloads": [],
-                         "Save cookies": [], "Save history": [], "Save download path": []}
+                         "Save cookies": [], "Save history": [], "Save path": []}
 
         for i, text in enumerate(self.contents):
             widget = InputWithLabel(text, self)
@@ -55,22 +51,48 @@ class SettingsWidget(QWidget):
             self.contents[text].append(f_text)
             self.content.layout().addWidget(widget)
             try:
-                val = config.get(f_text, self.config_category)
-                widget.input.setChecked(val == "true")
+                if f_text == "save_on_exit":
+                    val = settings.save_on_exit.get()
+                else:
+                    val = getattr(settings.ytdl, f_text).get()
+                widget.input.setChecked(val)
             except KeyError:
                 pass
 
-        self.contents["Save on exit"][0].input.setChecked(
-            config.get("save_on_exit", self.config_category[:1]) == "true")
+        self.contents["Save cookies"][0].input.clicked.connect(self.toggle_save_cookies)
+        self.contents["Save history"][0].input.clicked.connect(self.toggle_save_history)
         self.contents["Save on exit"][0].input.clicked.connect(self.toggle_save)
+        self.contents["Minimize to tray"][0].input.clicked.connect(self.toggle_minimize_to_tray)
+        self.contents["Delete completed downloads"][0].input.clicked.connect(self.toggle_delete_completed_downloads)
+
+        self.old_minimize_to_tray = self.contents["Minimize to tray"][0].input.isChecked()
+        self.old_delete_completed_downloads = self.contents["Delete completed downloads"][0].input.isChecked()
 
         self.layout().addWidget(self.content)
 
+    def toggle_save_cookies(self):
+        YoutubeBrowser.save_cookies = self.contents["Save cookies"][0].input.isChecked()
+
+    def toggle_save_history(self):
+        YoutubeBrowser.save_history = self.contents["Save history"][0].input.isChecked()
+
     def toggle_save(self):
-        config.put("save_on_exit", self.contents["Save on exit"][0].input.isChecked(), self.config_category[:-1])
+        settings.save_on_exit.set(self.contents["Save on exit"][0].input.isChecked())
         logging.debug("Save on exit: %s", self.contents["Save on exit"][0].input.isChecked())
 
+    def toggle_minimize_to_tray(self):
+        settings.ytdl.minimize_to_tray.set(self.contents["Minimize to tray"][0].input.isChecked())
+
+    def toggle_delete_completed_downloads(self):
+        settings.ytdl.delete_completed_downloads.set(self.contents["Delete completed downloads"][0].input.isChecked())
+
+    def restore_config(self):
+        print("restoring config")
+        settings.ytdl.minimize_to_tray.set(self.old_minimize_to_tray)
+        settings.ytdl.delete_completed_downloads.set(self.old_delete_completed_downloads)
+
     def save_config(self):
+        print(self.contents["Delete completed downloads"][0].input.isChecked())
         for v in list(self.contents.values()):
             if v[0].get_name() != "Save on exit":
-                config.put(v[1], v[0].input.isChecked(), self.config_category)
+                getattr(settings.ytdl, v[1]).set(v[0].input.isChecked())

@@ -3,11 +3,12 @@ import sys
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QMainWindow, QApplication, QStackedWidget, QFrame, QPushButton
 
-from src.Config import save_config
+from src.Config import settings
 from src.StyleSheetParser import get_style
 
 WIDTH = 700
 HEIGHT = 400
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -55,7 +56,7 @@ class MainWindow(QMainWindow):
         for view in list(self.views.keys()):
             view.closeEvent(event)
         if event.isAccepted():
-            save_config()
+            settings.save_config()
             sys.exit(0)
 
 

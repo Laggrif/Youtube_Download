@@ -5,17 +5,12 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QCheckBox, QRadioButton
 from src.YTDL.logic.ffmpeg import FFMpegThreadToMP3
 from src.components.headerwithlinewidget import Header
 from src.components.inputwithlabelwidget import InputWithLabel
-from src.Config import get, put
+from src.Config import settings
 
 
 class FFMpegWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        if hasattr(parent, 'config_category'):
-            self.config_category = parent.config_category.copy()
-            self.config_category.append('FFMpeg')
-        else:
-            self.config_category = 'FFMpeg'
         self.setObjectName('FFMpegWidget')
         self.setLayout(QVBoxLayout())
         self.layout().setAlignment(Qt.AlignTop)
@@ -64,13 +59,13 @@ class FFMpegWidget(QWidget):
 
     def load_config(self):
         try:
-            self.ext.input.setText(get("extension", self.config_category))
-            self.codec.input.setText(get("codec", self.config_category))
-            self.quick_convert.input.setChecked(get("quick_convert", self.config_category) == "true")
+            self.ext.input.setText(settings.ytdl.extension.get())
+            self.codec.input.setText(settings.ytdl.codec.get())
+            self.quick_convert.input.setChecked(settings.ytdl.quick_convert.get() == "true")
         except KeyError:
             pass
 
     def save_config(self):
-        put("extension", self.ext.get_input(), self.config_category)
-        put("codec", self.codec.get_input(), self.config_category)
-        put("quick_convert", self.quick_convert.input.isChecked(), self.config_category)
+        settings.ytdl.extension.set(self.ext.get_input())
+        settings.ytdl.codec.set(self.codec.get_input())
+        settings.ytdl.quick_convert.set(self.quick_convert.input.isChecked())

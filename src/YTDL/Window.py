@@ -37,7 +37,7 @@ class Leaver:
 class YTDL(View):
     def __init__(self, parent, main_window: MainWindow):
         super().__init__(parent, 'Youtube Download')
-        self.config_category = ['YT_Settings']
+
         self.setStyleSheet(get_style())
         self.main_window = main_window
         self.downloads = {}
@@ -66,7 +66,7 @@ class YTDL(View):
         # Input for path and its label
         self.path_input = QLineEdit(self)
         self.path_input.setObjectName('path_input')
-        self.path_input.setText(default_path())
+        self.path_input.setText(settings.ytdl.default_path.get())
         self.path_input_label = QLabel('Output path', self)
         self.path_input_label.setObjectName('input_label')
         self.path_input_label.adjustSize()
@@ -329,10 +329,10 @@ class YTDL(View):
 
     def closeEvent(self, event):
         self.sideBar.save_config()
-        if get("save_download_path", self.config_category) == "true":
-            print(self.path_input.text())
-            set_default_path(self.path_input.text())
-        save_config()
+        self.browser.save_session()
+        if settings.ytdl.save_path.get():
+            settings.ytdl.default_path.set(self.path_input.text())
+        settings.save_config()
         if len(self.downloads) != 0:
             quit_msg = ("Are you sure you want to exit the program? \nAll downloads will be stopped: "
                         "incomplete downloads will be deleted.")

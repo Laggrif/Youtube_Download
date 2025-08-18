@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
-from src.Config import get, put
+from src.Config import settings
 from src.StyleSheetParser import get_style
 from src.components.headerwithlinewidget import Header
 from src.components.inputwithlabelwidget import InputWithLabel
@@ -49,7 +49,7 @@ class MetadataWidget(QWidget):
             widget = self.content.layout().itemAt(i).widget()
             if widget.get_input() != '':
                 on = True
-                data[widget.get_name()] = widget.get_input()
+                data[widget.get_name().replace('_', '')] = widget.get_input()
                 print(self.content.layout().itemAt(i).widget().get_input())
 
         if not on:
@@ -63,7 +63,7 @@ class MetadataWidget(QWidget):
         for i in range(self.content.layout().count()):
             widget = self.content.layout().itemAt(i).widget()
             f_text = widget.get_name().replace(' ', '_').lower()
-            val = get(f_text, self.config_category)
+            val = getattr(settings.ytdl, f_text).get()
             if val is not None:
                 widget.input.setText(val)
 
@@ -71,4 +71,4 @@ class MetadataWidget(QWidget):
         for i in range(self.content.layout().count()):
             widget = self.content.layout().itemAt(i).widget()
             f_text = widget.get_name().replace(' ', '_').lower()
-            put(f_text, widget.get_input(), self.config_category)
+            getattr(settings.ytdl, f_text).set(widget.get_input())

@@ -8,7 +8,7 @@ from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFrame, QPushButton, QLineEdit, QWidget, QSizeGrip
 
-import src.Config as config
+from src.Config import settings
 from src.Directory import application_path
 from src.StyleSheetParser import get_style
 from src.utils import check_url
@@ -16,9 +16,13 @@ from src.utils import check_url
 
 # TODO aesthetic changes must be made
 class YoutubeBrowser(QFrame):
+    save_cookies = False
+    save_history = False
+
     def __init__(self, parent):
         super().__init__()
-        self.save_cookies = config.get('cookies')
+        self.save_cookies = settings.ytdl.save_cookies.get()
+        self.save_history = settings.ytdl.save_history.get()
         self.cookies = []
         self.side_grips = []
         self.corner_grips = []
@@ -42,9 +46,9 @@ class YoutubeBrowser(QFrame):
         self.page_browser = QWebEnginePage(self.profile_browser, self.browser)
         self.browser.setPage(self.page_browser)
         self.cookie_store = self.profile_browser.cookieStore()
-        if self.save_cookies:
-            self.cookie_store.cookieAdded.connect(lambda cook: self.cookies.append(cook))
-            self.load_session()
+
+        self.cookie_store.cookieAdded.connect(lambda cook: self.cookies.append(cook))
+        self.load_session()
 
         self.browser.setUrl('https://www.youtube.com')
         self.browser.urlChanged.connect(self.process_url)
@@ -58,23 +62,24 @@ class YoutubeBrowser(QFrame):
         self.update_grip()
 
     def save_session(self):
-        serializable_cookies = {}
-        for cookie in self.cookies:
-            cook = {
-                'name': cookie.name(),
-                'value': cookie.value(),
-                'domain': cookie.domain(),
-                'path': cookie.path(),
-                'secure': cookie.isSecure(),
-                'httpOnly': cookie.isHttpOnly(),
-                'expirationDate': cookie.expirationDate().toSecsSinceEpoch()
-            }
-            serializable_cookies[cookie.name()] = cook
-        config.put('cookies', serializable_cookies)
+        if self.save_cookies:
+            serializable_cookies = {}
+            for cookie in self.cookies:
+                cook = {
+                    'name': cookie.name(),
+                    'value': cookie.value(),
+                    'domain': cookie.domain(),
+                    'path': cookie.path(),
+                    'secure': cookie.isSecure(),
+                    'httpOnly': cookie.isHttpOnly(),
+                    'expirationDate': cookie.expirationDate().toSecsSinceEpoch()
+                }
+                serializable_cookies[cookie.name()] = cook
+            settings.ytdl.cookies.set(serializable_cookies)
 
     def load_session(self):
         # TODO Might be a huge security risk
-        cookies = config.get('cookies')
+        cookies = settings.ytdl.cookies.get()
         if not cookies:
             return
         self.cookie_store.deleteAllCookies()
@@ -110,14 +115,15 @@ class YoutubeBrowser(QFrame):
             self.button.show()
         else:
             self.button.hide()
-        self.add_to_history()
+        if self.save_history:
+            self.add_to_history()
         self.nav_bar.change_url(self.browser.url().toString())
 
     def add_to_history(self):
-        history = config.get('history')
+        history = settings.ytdl.history.get()
         history[self.browser.url()] = datetime.now().strftime('%d%m%Y. %H:%M:%S')
-        config.put('history', history)
-        config.save_config()
+        settings.ytdl.history.set(history)
+        settings.save_config()
 
     def back(self):
         self.browser.back()
@@ -161,10 +167,6 @@ class YoutubeBrowser(QFrame):
         self.nav_bar.setGeometry(0, 0, self.width(), 32)
         self.button.move(self.width() - 40, self.height() - 40)
         self.browser.setGeometry(0, 32, self.width(), self.height() - 32)
-
-    def closeEvent(self, event):
-        if self.save_cookies:
-            self.save_session()
 
 
 class CustomTitleBar(QFrame):
