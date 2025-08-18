@@ -21,6 +21,11 @@ if __name__ == "__main__":
     result = subprocess.run(['pip', 'freeze'], capture_output=True, text=True)
     installed_packages = result.stdout.splitlines()
 
+    # Update the requirements.txt file
+    with open('requirements.txt', 'w') as file:
+        for package in installed_packages:
+            file.write(package + '\n')
+
     packages = {}
     for package in installed_packages:
         packages[package.split('==')[0]] = package.split('==')[1]

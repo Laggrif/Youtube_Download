@@ -1,0 +1,17 @@
+certifi==2025.1.31
+charset-normalizer==3.4.1
+distlib==0.3.9
+idna==3.10
+Jinja2==3.1.5
+MarkupSafe==3.0.2
+mutagen==1.47.0
+pynsist==2.8
+PySide6==6.8.2.1
+PySide6_Addons==6.8.2.1
+PySide6_Essentials==6.8.2.1
+requests==2.32.3
+requests_download==0.1.2
+shiboken6==6.8.2.1
+urllib3==2.3.0
+yarg==0.1.10
+yt-dlp==2025.2.19
