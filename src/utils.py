@@ -54,6 +54,10 @@ def int_to_time(sec):
 
 
 def str_to_int(string: str):
+    if string == '∞':
+        return float('inf')
+    if re.sub(r'[^0-9]', "", string) == '':
+        return 0
     return float(re.sub(r'[^0-9.]', "", string))
 
 
