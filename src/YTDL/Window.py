@@ -22,18 +22,6 @@ def work(foo):
     foo.run()
 
 
-class Leaver:
-    def __init__(self, id, parent):
-        self.id = id
-        self.parent = parent
-
-    def leave(self):
-        self.parent.downloads[self.id][0].quit()
-        self.parent.downloads[self.id][0].wait()
-        self.parent.downloads[self.id][1].deleteLater()
-        del self.parent.downloads[self.id]
-
-
 class YTDL(View):
     def __init__(self, parent, main_window: MainWindow):
         super().__init__(parent, 'Youtube Download')
@@ -206,9 +194,21 @@ class YTDL(View):
         th.worker = worker
         th.started.connect(worker.run)
         id = worker.__hash__()
-        self.downloads[id] = [th, self.add_download_widget(), worker]
-        leaver = Leaver(id, self)
-        worker.finished.connect(lambda: leaver.leave())
+        widget = self.add_download_widget()
+        self.downloads[id] = [th, widget, worker]
+
+        if settings.ytdl.delete_completed_downloads.get():
+            def leave():
+                widget.deleteLater()
+                worker.stop()
+                th.quit()
+                th.wait()
+            worker.finished.connect(lambda: leave())
+
+            def f():
+                self.downloads[id][1] = None
+                self.downloads.pop(id, None)
+            widget.destroyed.connect(lambda: f())
         worker.sig.connect(self.process_signal)
         th.start()
 
