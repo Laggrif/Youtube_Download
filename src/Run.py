@@ -9,9 +9,9 @@ from src.MainWindow import MainWindow, View
 from src.YTDL.Window import YTDL
 from src.Directory import application_path
 from os.path import join
-from StyleSheetParser import get_style
+from src.StyleSheetParser import get_style
 
-VERSION = '1.0.0'
+VERSION = '0.1.0'
 
 
 def main():
@@ -49,4 +49,5 @@ if __name__ == '__main__':
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
+
     main()
