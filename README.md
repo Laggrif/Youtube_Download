@@ -5,6 +5,7 @@ Download the .exe file from the <a href='https://github.com/Laggrif/Youtube_Down
 
 ## Building
 Clone the project on your local machine, download ffmpeg from <a href='https://ffmpeg.org/download.html'>their website</a> and extract it under ```src/ffmpeg```.
+To build the installer, you will need to install NSIS. You can find it on <a href='https://nsis.sourceforge.io/Download'>their website</a>.
 Install the python packages with ```pip install requirements.txt``` and run ```Build.py```. You now have your own .exe installer
 
 ## Still in development, new features will eventually be added
